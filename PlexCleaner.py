@@ -517,7 +517,6 @@ if Config and os.path.isfile(Config):
   if settings['default_action']: default_action = settings['default_action']
   if settings['default_watched']: default_watched = settings['default_watched']
   if settings['default_location']: default_location=settings['default_location']
-  if settings['default_onDeck']: default_episodes=settings['default_onDeck']
   if settings['default_onDeck']: default_onDeck=settings['default_onDeck']
   if settings['ShowPreferences']: ShowPreferences=settings['ShowPreferences']
   if test:
