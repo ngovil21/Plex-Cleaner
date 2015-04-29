@@ -7,7 +7,7 @@
 
 ## Config File ###########################################################
 #All settings in the config file will overwrite the settings here
-Config = ".plexcleaner"       #Location of a config file to load options from, can be specified in the commandline with --load [CONFIG_FILE]
+Config = ""       #Location of a config file to load options from, can be specified in the commandline with --load [CONFIG_FILE]
 
 ## Global Settings #######################################################
 Host = ""                     # IP Address of the Plex Media Server, by default 127.0.0.1 will be used
@@ -454,14 +454,14 @@ def checkShow(show):
 parser = argparse.ArgumentParser()
 parser.add_argument("--test","-test",help="Run the script in test mode", action="store_true",default=False)
 parser.add_argument("--dump","-dump",help="Dump the settings to a configuration file and exit",nargs='?',const=".plexcleaner",default=None)
-parser.add_argument("--load","-load",help="Load settings from a configuration file and run with settings")
+parser.add_argument("--config","-config","--load","-load",help="Load settings from a configuration file and run with settings")
 
 args = parser.parse_args()
 
 test=args.test
 
-if args.load:
-  Config = args.load
+if args.config:
+  Config = args.config
 if args.dump:
   #Output settings to a json config file and exit
   print("Saving settings to " + args.dump)
@@ -492,6 +492,14 @@ if args.dump:
   with open(args.dump,'w') as outfile:
     json.dump(settings,outfile,indent=2,sort_keys=True)
   exit()
+
+#If no config file is provided, check if there is a config file in first the user directory, or the current directory.
+if Config=="":
+  print(os.path.join(os.path.expanduser("~"),".plexcleaner"))                                           
+  if os.path.isfile(os.path.join(os.path.expanduser("~"),".plexcleaner")):
+    Config = os.path.join(os.path.expanduser("~"),".plexcleaner")
+  elif os.path.isfile(".plexcleaner"): 
+    Config = ".plexcleaner"
 
 if Config and os.path.isfile(Config):
   print("Loading config file: " + Config)
