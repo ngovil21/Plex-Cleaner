@@ -198,7 +198,6 @@ def getTotalSize(file):
 
 def performAction(file, action, media_id=0, location=""):
   global DeleteCount, MoveCount, CopyCount, FlaggedCount
-  
   file = getLocalPath(file)
 
   if test:
