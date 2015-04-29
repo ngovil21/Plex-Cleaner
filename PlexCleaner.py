@@ -67,7 +67,7 @@ default_watched = True      # True | False
 default_onDeck = True      # True | False
 # default_minDays specifies the minimum number of days to keep an episode. Episdoes added more than
 # default_minDays ago will be deleted. If default_watched is True, then days from the last watched date
-# will be used 
+# will be used
 default_minDays = 0         # Minimum number of days to keep
 # default_maxDays specifies the maximum number of days to keep an episode. Episodes added more than
 # default)maxDays ago will be deleted. If default_watched is True, then days from the last wached date
@@ -127,7 +127,7 @@ def log(msg, debug=False):
 def getToken(user,passw):
   import base64
 
-  if sys.version < '3':   
+  if sys.version < '3':
     encode = base64.encodestring('%s:%s' % (user,passw)).replace('\n','')
   else:
     auth = bytes('%s:%s' % (user,passw),'utf-8')
@@ -153,12 +153,39 @@ def getToken(user,passw):
       import urllib
       req = urllib.request.Request(URL,b"None",headers)
       response = urllib.request.urlopen(req)
-      str_response = response.readall().decode('utf-8') 
+      str_response = response.readall().decode('utf-8')
     loaded = json.loads(str_response)
     return loaded['user']['authentication_token']
   except:
     return ""
 
+def dumpSettings(output):
+  settings = {
+    'Host' : Host,
+    'Port' : Port,
+    'SectionList' : SectionList,
+    'IgnoreSections' : IgnoreSections,
+    'LogFile' : LogFile,
+    'Token' : Token,
+    'Username' : Username,
+    'Password' : Password,
+    'RemoteMount' : RemoteMount,
+    'LocalMount' : LocalMount,
+    'plex_delete' : plex_delete,
+    'similar_files':similar_files,
+    'cleanup_movie_folders' : cleanup_movie_folders,
+    'minimum_folder_size' : minimum_folder_size,
+    'default_episodes' : default_episodes,
+    'default_minDays'  : default_minDays,
+    'default_maxDays'  : default_maxDays,
+    'default_action'   : default_action,
+    'default_watched'  : default_watched,
+    'default_location' : default_location,
+    'default_onDeck'   : default_onDeck,
+    'ShowPreferences' : ShowPreferences
+  }
+  with open(output,'w') as outfile:
+    json.dump(settings,outfile,indent=2,sort_keys=True)
 
 def getURLX(URL):
   req = urllib2.Request(URL,None,{"X-Plex-Token":Token})
@@ -198,6 +225,7 @@ def getTotalSize(file):
 
 def performAction(file, action, media_id=0, location=""):
   global DeleteCount, MoveCount, CopyCount, FlaggedCount
+
   file = getLocalPath(file)
 
   if test:
@@ -304,7 +332,6 @@ def getMediaInfo(VideoNode):
       else:
         file = urllib2.unquote(file)
   return {'view':view,'DaysSinceVideoAdded':DaysSinceVideoAdded,'DaysSinceVideoLastViewed':DaysSinceVideoLastViewed,'file':file,'media_id':media_id}
-
 
 #Movies are all listed on one page
 def checkMovies(doc):
@@ -444,7 +471,7 @@ def checkShow(show):
       KeptCount+=1
     log("")
     count+=1
-  
+
 
 
 ## Main Script ############################################
@@ -454,6 +481,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--test","-test",help="Run the script in test mode", action="store_true",default=False)
 parser.add_argument("--dump","-dump",help="Dump the settings to a configuration file and exit",nargs='?',const=".plexcleaner",default=None)
 parser.add_argument("--config","-config","--load","-load",help="Load settings from a configuration file and run with settings")
+parser.add_argument("--update_config","-update_config",action="store_true",help="Update the config file with new settings from the script and exit")
 
 args = parser.parse_args()
 
@@ -461,44 +489,19 @@ test=args.test
 
 if args.config:
   Config = args.config
+#If no config file is provided, check if there is a config file in first the user directory, or the current directory.
+if Config=="":
+  print(os.path.join(os.path.expanduser("~"),".plexcleaner"))
+  if os.path.isfile(os.path.join(os.path.expanduser("~"),".plexcleaner")):
+    Config = os.path.join(os.path.expanduser("~"),".plexcleaner")
+  elif os.path.isfile(".plexcleaner"):
+    Config = ".plexcleaner"
+
 if args.dump:
   #Output settings to a json config file and exit
   print("Saving settings to " + args.dump)
-  settings = {
-    'Host' : Host,
-    'Port' : Port,
-    'SectionList' : SectionList,
-    'IgnoreSections' : IgnoreSections,
-    'LogFile' : LogFile,
-    'Token' : Token,
-    'Username' : Username,
-    'Password' : Password,
-    'RemoteMount' : RemoteMount,
-    'LocalMount' : LocalMount,
-    'plex_delete' : plex_delete,
-    'similar_files':similar_files,
-    'cleanup_movie_folders' : cleanup_movie_folders,
-    'minimum_folder_size' : minimum_folder_size,
-    'default_episodes' : default_episodes,
-    'default_minDays'  : default_minDays,
-    'default_maxDays'  : default_maxDays,
-    'default_action'   : default_action,
-    'default_watched'  : default_watched,
-    'default_location' : default_location,
-    'default_onDeck'   : default_onDeck,
-    'ShowPreferences' : ShowPreferences
-  }
-  with open(args.dump,'w') as outfile:
-    json.dump(settings,outfile,indent=2,sort_keys=True)
+  dumpSettings(args.dump)
   exit()
-
-#If no config file is provided, check if there is a config file in first the user directory, or the current directory.
-if Config=="":
-  print(os.path.join(os.path.expanduser("~"),".plexcleaner"))                                           
-  if os.path.isfile(os.path.join(os.path.expanduser("~"),".plexcleaner")):
-    Config = os.path.join(os.path.expanduser("~"),".plexcleaner")
-  elif os.path.isfile(".plexcleaner"): 
-    Config = ".plexcleaner"
 
 if Config and os.path.isfile(Config):
   print("Loading config file: " + Config)
@@ -525,9 +528,18 @@ if Config and os.path.isfile(Config):
   if settings['default_watched']: default_watched = settings['default_watched']
   if settings['default_location']: default_location=settings['default_location']
   if settings['default_onDeck']: default_onDeck=settings['default_onDeck']
-  if settings['ShowPreferences']: ShowPreferences=settings['ShowPreferences']
+  if settings['ShowPreferences']: ShowPreferences.update(settings['ShowPreferences'])
   if test:
     print(json.dumps(settings,indent=2,sort_keys=True))   #if testing print out the loaded settings in the log
+
+if args.update_config:
+  if Config and os.path.isfile(Config):
+    print("Updating Config file with current settings")
+    dumpSettings(Config)
+    exit()
+  else:
+    print("No config file found! Exiting!")
+    exit()
 
 if Host=="":
   Host="127.0.0.1"
@@ -547,7 +559,7 @@ if Token=="":
       log("Error getting token, trying without...",True)
     elif test:
       log("Token: " + Token,True)
-      login = True  
+      login = True
 
 default_settings = {'episodes' : default_episodes,
                     'minDays'  : default_minDays,
@@ -590,7 +602,7 @@ else:
 
 for Section in SectionList:
   Section = str(Section)
-  
+
   doc = getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/all")
   deck = getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/onDeck")
 
@@ -621,4 +633,4 @@ log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
 log("")
 log("----------------------------------------------------------------------------")
-log("----------------------------------------------------------------------------") 
+log("----------------------------------------------------------------------------")
