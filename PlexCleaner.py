@@ -14,7 +14,7 @@ Host = ""  # IP Address of the Plex Media Server, by default 127.0.0.1 will be u
 Port = ""  # Port of the Plex Media Server, by default 32400 will be used
 SectionList = []  # Sections to clean. If empty all sections will be looked at
 IgnoreSections = []  # Sections to skip cleaning, for use when SectionList is not specified
-LogFile = ""  # Locaton of log file to save console output
+LogFile = ""  # Location of log file to save console output
 
 #Use Username/Password or Token for servers with PlexHome
 #To generate a proper Token, first put your username and password and run the script with the flag --test.
@@ -31,7 +31,7 @@ RemoteMount = ""  #Path on the remote server to the media files
 LocalMount = ""  #Path on the local computer to the media files
 ##########################################################################
 
-## DEFUALT SETTINGS PER SHOW #############################################
+## DEFAULT SETTINGS PER SHOW #############################################
 # These are the default actions that are applied to each show.
 #
 # default_action can be set to 'delete','copy','move', 'keep'
@@ -44,7 +44,7 @@ default_action = 'flag'  # 'keep' | 'move' | 'copy' | 'delete' | 'flag'
 # plex_delete if set to True will use the Plex API to delete files instead of using system functions
 # Useful for remote plex installations
 plex_delete = False  # True | False
-# similar_files if set to True will try to move/copy/delete files with similar filenames to the media file
+# similar_files if set to True will try to move/copy/delete files with similar file names to the media file
 # Note: delete_similar will not work with plex_delete
 similar_files = True  # True | False
 # cleanup_movie_folders if set to True will delete folders in movie section path that are less than a certain
@@ -65,12 +65,12 @@ default_watched = True  # True | False
 # default_onDeck if set to False will be disabled. If set to True, episodes that are On Deck in Plex
 # will not be deleted
 default_onDeck = True  # True | False
-# default_minDays specifies the minimum number of days to keep an episode. Episdoes added more than
+# default_minDays specifies the minimum number of days to keep an episode. Episodes added more than
 # default_minDays ago will be deleted. If default_watched is True, then days from the last watched date
 # will be used
 default_minDays = 0  # Minimum number of days to keep
 # default_maxDays specifies the maximum number of days to keep an episode. Episodes added more than
-# default)maxDays ago will be deleted. If default_watched is True, then days from the last wached date
+# default)maxDays ago will be deleted. If default_watched is True, then days from the last watched date
 # will be used
 default_maxDays = 60  # Maximum number of days to keep a file
 # default_location specifies the location that episodes will be copied or moved to if the action is such
@@ -136,7 +136,7 @@ def getToken(user, passw):
     else:
         auth = bytes('%s:%s' % (user, passw), 'utf-8')
         encode = base64.b64encode(auth).replace(b'\n', b'')
-    URL = ("https://plex.tv/users/sign_in.json")
+    URL = "https://plex.tv/users/sign_in.json"
     headers = {
         'X-Plex-Device-Name': 'Python',
         'X-Plex-Platform': platform.system(),
