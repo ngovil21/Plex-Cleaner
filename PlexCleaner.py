@@ -479,7 +479,7 @@ def checkShow(show):
 #parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--test","-test",help="Run the script in test mode", action="store_true",default=False)
-parser.add_argument("--dump","-dump",help="Dump the settings to a configuration file and exit",nargs='?',const=".plexcleaner",default=None)
+parser.add_argument("--dump","-dump",help="Dump the settings to a configuration file and exit",nargs='?',const="Cleaner.cfg",default=None)
 parser.add_argument("--config","-config","--load","-load",help="Load settings from a configuration file and run with settings")
 parser.add_argument("--update_config","-update_config",action="store_true",help="Update the config file with new settings from the script and exit")
 
@@ -491,11 +491,12 @@ if args.config:
   Config = args.config
 #If no config file is provided, check if there is a config file in first the user directory, or the current directory.
 if Config=="":
-  print(os.path.join(os.path.expanduser("~"),".plexcleaner"))
   if os.path.isfile(os.path.join(os.path.expanduser("~"),".plexcleaner")):
     Config = os.path.join(os.path.expanduser("~"),".plexcleaner")
   elif os.path.isfile(".plexcleaner"):
     Config = ".plexcleaner"
+  elif os.path.isfile("Cleaner.cfg")
+    Config = "Cleaner.cfg"
 
 if args.dump:
   #Output settings to a json config file and exit
