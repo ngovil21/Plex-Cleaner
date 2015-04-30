@@ -531,13 +531,15 @@ if Config and os.path.isfile(Config):
   if settings['ShowPreferences']: ShowPreferences.update(settings['ShowPreferences'])
   if test:
     print(json.dumps(settings,indent=2,sort_keys=True))   #if testing print out the loaded settings in the log
-  if args.update_config:
-      print("Updating Config file with current settings")
-      dumpSettings(Config)
-      exit()
-    else:
-      print("No config file found! Exiting!")
-      exit()
+
+if args.update_config:
+  if Config and os.path.isfile(Config)
+    print("Updating Config file with current settings")
+    dumpSettings(Config)
+    exit()
+  else:
+    print("No config file found! Exiting!")
+    exit()
 
 if Host=="":
   Host="127.0.0.1"
