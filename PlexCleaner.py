@@ -7,7 +7,7 @@
 
 ## Config File ###########################################################
 #All settings in the config file will overwrite the settings here
-Config = ""       #Location of a config file to load options from, can be specified in the commandline with --load [CONFIG_FILE]
+Config = ""       #Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
 
 ## Global Settings #######################################################
 Host = ""                     # IP Address of the Plex Media Server, by default 127.0.0.1 will be used
@@ -363,7 +363,7 @@ def checkMovies(doc):
     checkDeck=False
     if settings['onDeck']:
       checkDeck = CheckOnDeck(movie_id)
-    check = (not settings['action'].startswith('k')) and checkedWatched and (settings['minDays']<compareDay) and (not checkDeck)
+    check = (not settings['action'].startswith('k')) and checkedWatched and (compareDay>=settings['minDays']) and (not checkDeck)
     if check:
       performAction(file=m['file'],action=settings['action'],media_id=movie_id,location=settings['location'])
     else:
@@ -460,7 +460,7 @@ def checkShow(show):
       checkDeck=False
       if settings['onDeck']:
         checkDeck = CheckOnDeck(ep['media_id'])
-      check = (not settings['action'].startswith('k')) and checkWatched and (settings['minDays']<ep['compareDay']) and (not checkDeck)
+      check = (not settings['action'].startswith('k')) and checkWatched and (ep['compareDay']>=settings['minDays']) and (not checkDeck)
       if check:
         performAction(file=ep['file'],action=settings['action'],media_id=ep['media_id'],location=settings['location'])
       else:
