@@ -361,11 +361,11 @@ def checkMovies(doc):
                 compareDay = m['DaysSinceVideoAdded']
             else:
                 compareDay = m['DaysSinceVideoLastViewed']
-            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoLastViewed'],onDeck))
+            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
             checkedWatched = (m['view'] > 0)
         else:
             compareDay = m['DaysSinceVideoAdded']
-            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoAdded'],onDeck))
+            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoAdded'], onDeck))
             checkedWatched = True
         FileCount += 1
         checkDeck = False
@@ -435,7 +435,7 @@ def checkShow(show):
             season_num = ("%02d" % int(season_num))
         season = getURLX("http://" + Host + ":" + Port + season_key)
         for VideoNode in season.getElementsByTagName("Video"):
-            episode_num = str(VideoNode.getAttribute('index'))  #Video index refers to the epiosde number
+            episode_num = str(VideoNode.getAttribute('index'))  #Video index refers to the episode number
             if episode_num.isdigit():  #Check if numeric index
                 episode_num = ("%03d" % int(episode_num))
             if episode_num == "":  #if episode_num blank here, then use something else to get order
@@ -464,11 +464,11 @@ def checkShow(show):
         onDeck = CheckOnDeck(ep['media_id'])
         if show_settings['watched']:
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Last Viewed: %d | On Deck: %s" % (
-                show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'],onDeck))
+                show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = (ep['view'] > 0)
         else:
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Added: %d | On Deck: %s" % (
-                show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'],onDeck))
+                show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
         if ((len(episodes) - count) > show_settings['episodes']) or (
                     ep['view'] > show_settings['maxDays']):  #if we have more episodes, then check if we can delete the file
