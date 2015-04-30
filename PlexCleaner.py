@@ -495,7 +495,7 @@ if Config=="":
     Config = os.path.join(os.path.expanduser("~"),".plexcleaner")
   elif os.path.isfile(".plexcleaner"):
     Config = ".plexcleaner"
-  elif os.path.isfile("Cleaner.cfg")
+  elif os.path.isfile("Cleaner.cfg"):
     Config = "Cleaner.cfg"
 
 if args.dump:
