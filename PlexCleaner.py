@@ -533,7 +533,7 @@ if Config and os.path.isfile(Config):
     print(json.dumps(settings,indent=2,sort_keys=True))   #if testing print out the loaded settings in the log
 
 if args.update_config:
-  if Config and os.path.isfile(Config)
+  if Config and os.path.isfile(Config):
     print("Updating Config file with current settings")
     dumpSettings(Config)
     exit()
