@@ -201,12 +201,12 @@ def dumpSettings(output):
         json.dump(options, outfile, indent=2)
 
 
-def getURLX(URL, parseXML=True, max_tries=3, timeout=1):
+def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1):
     for x in range(0, max_tries):
         if x > 0:
             time.sleep(timeout)
         try:
-            req = urllib2.Request(URL, None, {"X-Plex-Token": Token})
+            req = urllib2.Request(URL, data, {"X-Plex-Token": Token})
             page = urllib2.urlopen(req)
             if page:
                 if parseXML:
@@ -246,6 +246,7 @@ def getTotalSize(file):
                 total_size += getTotalSize(itempath)
     return total_size
 
+
 #Returns if a file action was performed (move, copy, delete)
 def performAction(file, action, media_id=0, location=""):
     global DeleteCount, MoveCount, CopyCount, FlaggedCount
@@ -261,10 +262,9 @@ def performAction(file, action, media_id=0, location=""):
     elif action.startswith('d') and plex_delete:
         try:
             URL = ("http://" + Host + ":" + Port + "/library/metadata/" + str(media_id))
-            #print(URL)
             req = urllib2.Request(URL, None, {"X-Plex-Token": Token})
             req.get_method = lambda: 'DELETE'
-            ret = urllib2.urlopen(req)
+            urllib2.urlopen(req)
             DeleteCount += 1
             log("**[DELETED] " + file)
             return True
@@ -688,7 +688,7 @@ for Section in SectionList:
     log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
 
     group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
-    changed = 1
+    changed = 0
     if group == "movie":
         changed = checkMovies(doc)
     elif group == "show":
