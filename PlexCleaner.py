@@ -481,7 +481,7 @@ def checkShow(show):
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
         if ((len(episodes) - count) > show_settings['episodes']) or (
-                    ep['view'] > show_settings['maxDays']):  #if we have more episodes, then check if we can delete the file
+                ep['view'] > show_settings['maxDays']):  #if we have more episodes, then check if we can delete the file
             checkDeck = False
             if show_settings['onDeck']:
                 checkDeck = onDeck
@@ -489,7 +489,7 @@ def checkShow(show):
                 ep['compareDay'] >= show_settings['minDays']) and (not checkDeck)
             if check:
                 if performAction(file=ep['file'], action=show_settings['action'], media_id=ep['media_id'],
-                              location=show_settings['location']):
+                                 location=show_settings['location']):
                     changed += 1
             else:
                 log('[Keeping] ' + ep['file'])
@@ -540,7 +540,8 @@ if Config and os.path.isfile(Config):
     print("Loading config file: " + Config)
     with open(Config, 'r') as infile:
         opt_string = infile.read().replace('\n', '')    #read in file removing breaks
-        opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\',opt_string) #Escape odd number of backslashes (Windows paths are a problem)
+        # Escape odd number of backslashes (Windows paths are a problem)
+        opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
         options = json.loads(opt_string)
     if 'Host' in options and options['Host']:
         Host = options['Host']
@@ -682,7 +683,9 @@ for Section in SectionList:
         for DirectoryNode in doc.getElementsByTagName("Directory"):
             show_key = DirectoryNode.getAttribute('key')
             changed += checkShow(getURLX("http://" + Host + ":" + Port + show_key))
+            print(str(changed))
     if changed > 0 and trigger_rescan:
+        log("Triggering rescan...")
         getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh")
         RescannedSections.append(Section)
 
@@ -699,7 +702,7 @@ log("  Deleted Files         " + str(DeleteCount))
 log("  Moved Files           " + str(MoveCount))
 log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
-log("  Rescanned Sections    " +  ', '.join(str(x) for x in RescannedSections) )
+log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
