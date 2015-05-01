@@ -669,7 +669,7 @@ KeptCount = 0
 
 doc_sections = getURLX("http://" + Host + ":" + Port + "/library/sections/")
 
-if not SectionList and doc_sections:
+if (not SectionList) and doc_sections:
     for Section in doc_sections.getElementsByTagName("Directory"):
         if Section.getAttribute("key") not in IgnoreSections:
             SectionList.append(Section.getAttribute("key"))
