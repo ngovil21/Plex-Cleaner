@@ -109,6 +109,7 @@ import logging
 import json
 import argparse
 from collections import OrderedDict
+import time
 
 VERSION = 1.3
 
@@ -200,9 +201,20 @@ def dumpSettings(output):
         json.dump(options, outfile, indent=2)
 
 
-def getURLX(URL):
-    req = urllib2.Request(URL, None, {"X-Plex-Token": Token})
-    return xml.dom.minidom.parse(urllib2.urlopen(req))
+def getURLX(URL, parseXML=True, max_tries=3, timeout=1):
+    for x in range(0, max_tries):
+        if x > 0:
+            time.sleep(timeout)
+        try:
+            req = urllib2.Request(URL, None, {"X-Plex-Token": Token})
+            page = urllib2.urlopen(req)
+            if page:
+                if parseXML:
+                    return xml.dom.minidom.parse(page)
+                else:
+                    return page
+        except:
+            continue
 
 
 def CheckOnDeck(media_id):
@@ -676,17 +688,16 @@ for Section in SectionList:
     log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
 
     group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
-    changed = 0
+    changed = 1
     if group == "movie":
         changed = checkMovies(doc)
     elif group == "show":
         for DirectoryNode in doc.getElementsByTagName("Directory"):
             show_key = DirectoryNode.getAttribute('key')
             changed += checkShow(getURLX("http://" + Host + ":" + Port + show_key))
-            print(str(changed))
     if changed > 0 and trigger_rescan:
         log("Triggering rescan...")
-        getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh")
+        getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh?deep=1", parseXML=False)
         RescannedSections.append(Section)
 
 log("")
