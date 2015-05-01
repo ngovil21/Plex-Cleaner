@@ -76,6 +76,8 @@ default_maxDays = 60  # Maximum number of days to keep a file
 # default_location specifies the location that episodes will be copied or moved to if the action is such
 # make sure this is the path to the directory on the local computer
 default_location = ''  # /path/to/file
+# trigger_rescan will rescan a section if changes are made to it
+trigger_rescan = False
 ##########################################################################
 
 ## CUSTOMIZED SHOW SETTINGS ##############################################
@@ -106,6 +108,9 @@ import sys
 import logging
 import json
 import argparse
+from collections import OrderedDict
+
+VERSION = 1.3
 
 try:
     import urllib.request as urllib2
@@ -165,32 +170,34 @@ def getToken(user, passw):
 
 
 def dumpSettings(output):
-    settings = {
-        'Host': Host,
-        'Port': Port,
-        'SectionList': SectionList,
-        'IgnoreSections': IgnoreSections,
-        'LogFile': LogFile,
-        'Token': Token,
-        'Username': Username,
-        'Password': Password,
-        'RemoteMount': RemoteMount,
-        'LocalMount': LocalMount,
-        'plex_delete': plex_delete,
-        'similar_files': similar_files,
-        'cleanup_movie_folders': cleanup_movie_folders,
-        'minimum_folder_size': minimum_folder_size,
-        'default_episodes': default_episodes,
-        'default_minDays': default_minDays,
-        'default_maxDays': default_maxDays,
-        'default_action': default_action,
-        'default_watched': default_watched,
-        'default_location': default_location,
-        'default_onDeck': default_onDeck,
-        'ShowPreferences': ShowPreferences
-    }
+    options = OrderedDict([
+        ('Host', Host),
+        ('Port', Port),
+        ('SectionList', SectionList),
+        ('IgnoreSections', IgnoreSections),
+        ('LogFile', LogFile),
+        ('Token', Token),
+        ('Username', Username),
+        ('Password', Password),
+        ('RemoteMount', RemoteMount),
+        ('LocalMount', LocalMount),
+        ('plex_delete', plex_delete),
+        ('similar_files', similar_files),
+        ('cleanup_movie_folders', cleanup_movie_folders),
+        ('minimum_folder_size', minimum_folder_size),
+        ('default_episodes', default_episodes),
+        ('default_minDays', default_minDays),
+        ('default_maxDays', default_maxDays),
+        ('default_action', default_action),
+        ('default_watched', default_watched),
+        ('default_location', default_location),
+        ('default_onDeck', default_onDeck),
+        ('trigger_rescan', trigger_rescan),
+        ('ShowPreferences', OrderedDict(sorted(ShowPreferences.items()))),
+        ('Version', VERSION)
+    ])
     with open(output, 'w') as outfile:
-        json.dump(settings, outfile, indent=2, sort_keys=True)
+        json.dump(options, outfile, indent=2)
 
 
 def getURLX(URL):
@@ -227,19 +234,18 @@ def getTotalSize(file):
                 total_size += getTotalSize(itempath)
     return total_size
 
-
+#Returns if a file action was performed (move, copy, delete)
 def performAction(file, action, media_id=0, location=""):
     global DeleteCount, MoveCount, CopyCount, FlaggedCount
 
     file = getLocalPath(file)
-
     if test:
         if not os.path.isfile(file):
             log("[NOT FOUND] " + file)
             return False
         log("**[FLAGGED] " + file)
         FlaggedCount += 1
-        return True
+        return False
     elif action.startswith('d') and plex_delete:
         try:
             URL = ("http://" + Host + ":" + Port + "/library/metadata/" + str(media_id))
@@ -265,7 +271,7 @@ def performAction(file, action, media_id=0, location=""):
     if action.startswith('c'):
         try:
             for f in filelist:
-                shutil.copy(os.path.realpath(file), location)
+                shutil.copy(os.path.realpath(f), location)
                 log("**[COPIED] " + file)
             CopyCount += 1
             return True
@@ -298,7 +304,7 @@ def performAction(file, action, media_id=0, location=""):
     else:
         log("[FLAGGED] " + file)
         FlaggedCount += 1
-        return True
+        return False
 
 
 def getMediaInfo(VideoNode):
@@ -345,6 +351,7 @@ def checkMovies(doc):
     global FileCount
     global KeptCount
 
+    changed=0
     for VideoNode in doc.getElementsByTagName("Video"):
         title = VideoNode.getAttribute("title")
         movie_id = VideoNode.getAttribute("ratingKey")
@@ -374,13 +381,15 @@ def checkMovies(doc):
         check = (not movie_settings['action'].startswith('k')) and checkedWatched and (
             compareDay >= movie_settings['minDays']) and (not checkDeck)
         if check:
-            performAction(file=m['file'], action=movie_settings['action'], media_id=movie_id, location=movie_settings['location'])
+            if performAction(file=m['file'], action=movie_settings['action'], media_id=movie_id, location=movie_settings['location']):
+                changed += 1
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
         log("")
     if cleanup_movie_folders:
         cleanUpFolders(Section, 30)
+    return changed
 
 
 #Cleans up orphaned folders in a section that are less than the max_size (in megabytes)
@@ -425,7 +434,7 @@ def checkShow(show):
     if show_settings['action'].startswith('k'):  #If keeping on show just skip checking
         log("[Keeping] " + show_name)
         log("")
-        return
+        return 0
     for DirectoryNode in show.getElementsByTagName("Directory"):  #Each directory is a season
         if not DirectoryNode.getAttribute('type') == "season":
             continue
@@ -459,6 +468,7 @@ def checkShow(show):
                              'compareDay': compareDay, 'file': m['file'], 'media_id': m['media_id']}
             FileCount += 1
     count = 0
+    changed=0
     for key in sorted(episodes):
         ep = episodes[key]
         onDeck = CheckOnDeck(ep['media_id'])
@@ -478,8 +488,9 @@ def checkShow(show):
             check = (not show_settings['action'].startswith('k')) and checkWatched and (
                 ep['compareDay'] >= show_settings['minDays']) and (not checkDeck)
             if check:
-                performAction(file=ep['file'], action=show_settings['action'], media_id=ep['media_id'],
-                              location=show_settings['location'])
+                if performAction(file=ep['file'], action=show_settings['action'], media_id=ep['media_id'],
+                              location=show_settings['location']):
+                    changed += 1
             else:
                 log('[Keeping] ' + ep['file'])
                 KeptCount += 1
@@ -488,6 +499,7 @@ def checkShow(show):
             KeptCount += 1
         log("")
         count += 1
+    return changed
 
 
 ## Main Script ############################################
@@ -527,31 +539,60 @@ if args.dump:
 if Config and os.path.isfile(Config):
     print("Loading config file: " + Config)
     with open(Config, 'r') as infile:
-        settings = json.load(infile)
-    if settings['Host']: Host = settings['Host']
-    if settings['Port']: Port = settings['Port']
-    if settings['SectionList']: SectionList = settings['SectionList']
-    if settings['IgnoreSections']: IgnoreSections = settings['IgnoreSections']
-    if settings['LogFile']: LogFile = settings['LogFile']
-    if settings['Token']: Token = settings['Token']
-    if settings['Username']: Username = settings['Username']
-    if settings['Password']: Password = settings['Password']
-    if settings['LocalMount']: LocalMount = settings['LocalMount']
-    if settings['RemoteMount']: RemoteMount = settings['RemoteMount']
-    if settings['plex_delete']: plex_delete = settings['plex_delete']
-    if settings['similar_files']: similar_files = settings['similar_files']
-    if settings['cleanup_movie_folders']: cleanup_movie_folders = settings['cleanup_movie_folders']
-    if settings['minimum_folder_size']: minimum_folder_size = settings['minimum_folder_size']
-    if settings['default_episodes']: default_episodes = settings['default_episodes']
-    if settings['default_minDays']: default_minDays = settings['default_minDays']
-    if settings['default_maxDays']: default_maxDays = settings['default_maxDays']
-    if settings['default_action']: default_action = settings['default_action']
-    if settings['default_watched']: default_watched = settings['default_watched']
-    if settings['default_location']: default_location = settings['default_location']
-    if settings['default_onDeck']: default_onDeck = settings['default_onDeck']
-    if settings['ShowPreferences']: ShowPreferences.update(settings['ShowPreferences'])
+        opt_string = infile.read().replace('\n', '')    #read in file removing breaks
+        opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\',opt_string) #Escape odd number of backslashes (Windows paths are a problem)
+        options = json.loads(opt_string)
+    if 'Host' in options and options['Host']:
+        Host = options['Host']
+    if 'Port' in options and options['Port']:
+        Port = options['Port']
+    if 'SectionList' in options and options['SectionList']:
+        SectionList = options['SectionList']
+    if 'IgnoreSections' in options and options['IgnoreSections']:
+        IgnoreSections = options['IgnoreSections']
+    if 'LogFile' in options and options['LogFile']:
+        LogFile = options['LogFile']
+    if 'Token' in options and options['Token']:
+        Token = options['Token']
+    if 'Username' in options and options['Username']:
+        Username = options['Username']
+    if 'Password' in options and options['Password']:
+        Password = options['Password']
+    if 'LocalMount' in options and options['LocalMount']:
+        LocalMount = options['LocalMount']
+    if 'RemoteMount' in options and options['RemoteMount']:
+        RemoteMount = options['RemoteMount']
+    if 'plex_delete' in options and options['plex_delete']:
+        plex_delete = options['plex_delete']
+    if 'similar_files' in options and options['similar_files']:
+        similar_files = options['similar_files']
+    if 'cleanup_movie_folders' in options and options['cleanup_movie_folders']:
+        cleanup_movie_folders = options['cleanup_movie_folders']
+    if 'minimum_folder_size' in options and options['minimum_folder_size']:
+        minimum_folder_size = options['minimum_folder_size']
+    if 'default_episodes' in options and options['default_episodes']:
+        default_episodes = options['default_episodes']
+    if 'default_minDays' in options and options['default_minDays']:
+        default_minDays = options['default_minDays']
+    if 'default_maxDays' in options and options['default_maxDays']:
+        default_maxDays = options['default_maxDays']
+    if 'default_action' in options and options['default_action']:
+        default_action = options['default_action']
+    if 'default_watched' in options and options['default_watched']:
+        default_watched = options['default_watched']
+    if 'default_location' in options and options['default_location']:
+        default_location = options['default_location']
+    if 'default_onDeck' in options and options['default_onDeck']:
+        default_onDeck = options['default_onDeck']
+    if 'trigger_rescan' in options and options['trigger_rescan']:
+        trigger_rescan = options['trigger_rescan']
+    if 'ShowPreferences' in options and options['ShowPreferences']:
+        ShowPreferences.update(options['ShowPreferences'])
+    if ('Version' not in options) or not options['Version'] or (options['Version'] < VERSION):
+        print("Old version of config file! Updating...")
+        dumpSettings(Config)
     if test:
-        print(json.dumps(settings, indent=2, sort_keys=True))  #if testing print out the loaded settings in the log
+        print(json.dumps(options, indent=2, sort_keys=True))  #if testing print out the loaded settings in the log
 
 if args.update_config:
     if Config and os.path.isfile(Config):
@@ -621,6 +662,8 @@ else:
     log("Section List Mode: User-defined")
     log("Operating on user-defined sections: " + ','.join(str(x) for x in SectionList))
 
+RescannedSections = []
+
 for Section in SectionList:
     Section = str(Section)
 
@@ -631,13 +674,17 @@ for Section in SectionList:
     log("")
     log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
 
-    type = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
-    if type == "movie":
-        checkMovies(doc)
-    elif type == "show":
+    group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
+    changed = 0
+    if group == "movie":
+        changed = checkMovies(doc)
+    elif group == "show":
         for DirectoryNode in doc.getElementsByTagName("Directory"):
             show_key = DirectoryNode.getAttribute('key')
-            checkShow(getURLX("http://" + Host + ":" + Port + show_key))
+            changed += checkShow(getURLX("http://" + Host + ":" + Port + show_key))
+    if changed > 0 and trigger_rescan:
+        getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh")
+        RescannedSections.append(Section)
 
 log("")
 log("----------------------------------------------------------------------------")
@@ -652,6 +699,7 @@ log("  Deleted Files         " + str(DeleteCount))
 log("  Moved Files           " + str(MoveCount))
 log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
+log("  Rescanned Sections    " +  ', '.join(str(x) for x in RescannedSections) )
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
