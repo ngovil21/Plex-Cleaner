@@ -215,10 +215,13 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1):
                     return page
         except:
             continue
+    return None
 
 
 def CheckOnDeck(media_id):
     global OnDeckCount
+    if not deck:
+        return False
     for DeckVideoNode in deck.getElementsByTagName("Video"):
         if DeckVideoNode.getAttribute("ratingKey") == str(media_id):
             OnDeckCount += 1
@@ -433,6 +436,9 @@ def checkShow(show):
     global KeptCount
     global FileCount
     #Parse all of the episode information from the season pages
+    if not show:            #Check if show page is None or empty
+        log("Failed to load show page. Skipping...")
+        return 0
     episodes = {}
     show_settings = default_settings.copy()
     media_container = show.getElementsByTagName("MediaContainer")[0]
@@ -455,6 +461,8 @@ def checkShow(show):
         if season_num.isdigit():
             season_num = ("%02d" % int(season_num))
         season = getURLX("http://" + Host + ":" + Port + season_key)
+        if not season:
+            continue
         for VideoNode in season.getElementsByTagName("Video"):
             episode_num = str(VideoNode.getAttribute('index'))  #Video index refers to the episode number
             if episode_num.isdigit():  #Check if numeric index
@@ -661,7 +669,7 @@ KeptCount = 0
 
 doc_sections = getURLX("http://" + Host + ":" + Port + "/library/sections/")
 
-if not SectionList:
+if not SectionList and doc_sections:
     for Section in doc_sections.getElementsByTagName("Directory"):
         if Section.getAttribute("key") not in IgnoreSections:
             SectionList.append(Section.getAttribute("key"))
@@ -683,6 +691,9 @@ for Section in SectionList:
     doc = getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/all")
     deck = getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/onDeck")
 
+    if not doc:
+        log("Failed to load Section %s. Skipping..." % Section)
+        continue
     SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
     log("")
     log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
@@ -697,8 +708,8 @@ for Section in SectionList:
             changed += checkShow(getURLX("http://" + Host + ":" + Port + show_key))
     if changed > 0 and trigger_rescan:
         log("Triggering rescan...")
-        getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh?deep=1", parseXML=False)
-        RescannedSections.append(Section)
+        if getURLX("http://" + Host + ":" + Port + "/library/sections/" + Section + "/refresh?deep=1", parseXML=False):
+            RescannedSections.append(Section)
 
 log("")
 log("----------------------------------------------------------------------------")
