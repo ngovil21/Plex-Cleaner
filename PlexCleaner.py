@@ -15,6 +15,7 @@ Port = ""  # Port of the Plex Media Server, by default 32400 will be used
 SectionList = []  # Sections to clean. If empty all sections will be looked at
 IgnoreSections = []  # Sections to skip cleaning, for use when SectionList is not specified
 LogFile = ""  # Location of log file to save console output
+trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
 
 #Use Username/Password or Token for servers with PlexHome
 #To generate a proper Token, first put your username and password and run the script with the flag --test.
@@ -50,7 +51,7 @@ similar_files = True  # True | False
 # cleanup_movie_folders if set to True will delete folders in movie section path that are less than a certain
 # size in megabytes that is set in minimum_folder_size. This is used to cleanup orphaned movie folders when
 # a movie file has been deleted by the script or through Plex. Only scanned sections will be affected.
-# CAUTION: If you have Plex libraries that are subdirectories of other libraries, the subdirectory may be deleted!
+# CAUTION: If you have Plex libraries that are in subdirectories of other libraries, the subdirectory may be deleted!
 cleanup_movie_folders = False
 # minimum_folder_size is the size in megabytes under which a movie folder will be deleted, set to much less,
 # than your smallest movie file. If you keep a large amount of extra feature files, this value may need to be adjusted
@@ -72,12 +73,10 @@ default_minDays = 0  # Minimum number of days to keep
 # default_maxDays specifies the maximum number of days to keep an episode. Episodes added more than
 # default)maxDays ago will be deleted. If default_watched is True, then days from the last watched date
 # will be used
-default_maxDays = 60  # Maximum number of days to keep a file
+default_maxDays = 60  # Maximum number of days to keep an episode
 # default_location specifies the location that episodes will be copied or moved to if the action is such
 # make sure this is the path to the directory on the local computer
 default_location = ''  # /path/to/file
-# trigger_rescan will rescan a section if changes are made to it
-trigger_rescan = False
 ##########################################################################
 
 ## CUSTOMIZED SHOW SETTINGS ##############################################
@@ -85,14 +84,24 @@ trigger_rescan = False
 # Only the settings that are being changed need to be given. The setting will match the default settings above
 # You can also specify an id instead of the Show Name. The id is the id assigned by Plex to the show
 # Ex: 'Show Name':{'episodes':3,'watched':True/False,'minDays':,'action':'copy','location':'/path/to/folder'},
-# Make sure each show is separated by a comma
+# Make sure each show is separated by a comma. Use this for TV shows
 ShowPreferences = {
     "Show 1": {"episodes": 3, "watched": True, "minDays": 10, "action": "delete", "location": "/path/to/folder",
                "onDeck": True, "maxDays": 30},
     "Show 2": {"episodes": 0, "watched": False, "minDays": 10, "action": "delete", "location": "/path/to/folder",
                "onDeck": False, "maxDays": 30},
     "Show 3": {"action": "keep"},  #This show will skipped
-    "End Preferences": {}  # Keep this line
+    "Show Preferences": {}  # Keep this line
+}
+# Movie specific settings, settings you would like to apply to movie sections only. These settings will override the default
+# settings set above. Change the default value here or in the config file. Use this for Movie Libraries.
+MoviePreferences = {
+    'watched': default_watched,              # Delete only watched episodes
+    'minDays': default_minDays,              # Minimum number of days to keep
+    'action': default_action,                # Action to perform on movie files (delete/move/copy)
+    'location': default_location,            # Location to keep movie files
+    'onDeck': default_onDeck,                # Do not delete move if on deck
+    'Movie Preferences': ""                  # Keep this line
 }
 ##########################################################################
 
@@ -111,7 +120,7 @@ import argparse
 from collections import OrderedDict
 import time
 
-VERSION = 1.3
+CONFIG_VERSION = 1.5
 
 try:
     import urllib.request as urllib2
@@ -171,7 +180,7 @@ def getToken(user, passw):
 
 
 def dumpSettings(output):
-    options = OrderedDict([
+    settings = OrderedDict([
         ('Host', Host),
         ('Port', Port),
         ('SectionList', SectionList),
@@ -195,10 +204,11 @@ def dumpSettings(output):
         ('default_onDeck', default_onDeck),
         ('trigger_rescan', trigger_rescan),
         ('ShowPreferences', OrderedDict(sorted(ShowPreferences.items()))),
-        ('Version', VERSION)
+        ('MoviePreferences', OrderedDict(sorted(MoviePreferences.items()))),
+        ('Version', CONFIG_VERSION)
     ])
     with open(output, 'w') as outfile:
-        json.dump(options, outfile, indent=2)
+        json.dump(settings, outfile, indent=2)
 
 
 def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1):
@@ -362,20 +372,16 @@ def getMediaInfo(VideoNode):
 
 
 #Movies are all listed on one page
-def checkMovies(doc):
+def checkMovies(doc,section):
     global FileCount
     global KeptCount
 
-    changed=0
+    changes = 0
+    movie_settings = default_settings.copy()
+    movie_settings.update(MoviePreferences)
     for VideoNode in doc.getElementsByTagName("Video"):
         title = VideoNode.getAttribute("title")
         movie_id = VideoNode.getAttribute("ratingKey")
-        movie_settings = default_settings.copy()
-        for key in ShowPreferences:
-            if (key.lower() in title.lower()) or (key == movie_id):
-                movie_settings.update(ShowPreferences[key])
-                break
-        #if action is keep then skip checking
         m = getMediaInfo(VideoNode)
         onDeck = CheckOnDeck(movie_id)
         if movie_settings['watched']:
@@ -397,19 +403,19 @@ def checkMovies(doc):
             compareDay >= movie_settings['minDays']) and (not checkDeck)
         if check:
             if performAction(file=m['file'], action=movie_settings['action'], media_id=movie_id, location=movie_settings['location']):
-                changed += 1
+                changes += 1
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
         log("")
-    if cleanup_movie_folders:
-        cleanUpFolders(Section, 30)
-    return changed
+    if cleanup_movie_folders and changes>0:
+        log("Cleaning up orphaned folders less than " + str(minimum_folder_size) + "MB in Section " + section)
+        cleanUpFolders(section, minimum_folder_size)
+    return changes
 
 
 #Cleans up orphaned folders in a section that are less than the max_size (in megabytes)
 def cleanUpFolders(section, max_size):
-    log("Cleaning up orphaned folders less than " + str(max_size) + "MB in Section " + str(section))
     for directory in doc_sections.getElementsByTagName("Directory"):
         if directory.getAttribute("key") == section:
             for location in directory.getElementsByTagName("Location"):
@@ -429,7 +435,7 @@ def cleanUpFolders(section, max_size):
                                 size = getTotalSize(subfolder_path)
                                 if os.path.isdir(subfolder_path) and size < max_size * 1024 * 1024:
                                     try:
-                                        if test: #or default_action.startswith("f"):
+                                        if test:  #or default_action.startswith("f"):
                                             log("**[Flagged]: " + subfolder_path)
                                             log("Size " + str(size) + " bytes")
                                             continue
@@ -462,11 +468,11 @@ def checkShow(show):
         log("[Keeping] " + show_name)
         log("")
         return 0
-    for DirectoryNode in show.getElementsByTagName("Directory"):  #Each directory is a season
-        if not DirectoryNode.getAttribute('type') == "season":
+    for SeasonDirectoryNode in show.getElementsByTagName("Directory"):  #Each directory is a season
+        if not SeasonDirectoryNode.getAttribute('type') == "season":    #Only process Seasons (skips Specials)
             continue
-        season_key = DirectoryNode.getAttribute('key')
-        season_num = str(DirectoryNode.getAttribute('index'))  #Directory index refers to the season number
+        season_key = SeasonDirectoryNode.getAttribute('key')
+        season_num = str(SeasonDirectoryNode.getAttribute('index'))  #Directory index refers to the season number
         if season_num.isdigit():
             season_num = ("%02d" % int(season_num))
         season = getURLX("http://" + Host + ":" + Port + season_key)
@@ -497,7 +503,7 @@ def checkShow(show):
                              'compareDay': compareDay, 'file': m['file'], 'media_id': m['media_id']}
             FileCount += 1
     count = 0
-    changed=0
+    changes = 0
     for key in sorted(episodes):
         ep = episodes[key]
         onDeck = CheckOnDeck(ep['media_id'])
@@ -519,7 +525,7 @@ def checkShow(show):
             if check:
                 if performAction(file=ep['file'], action=show_settings['action'], media_id=ep['media_id'],
                                  location=show_settings['location']):
-                    changed += 1
+                    changes += 1
             else:
                 log('[Keeping] ' + ep['file'])
                 KeptCount += 1
@@ -528,7 +534,7 @@ def checkShow(show):
             KeptCount += 1
         log("")
         count += 1
-    return changed
+    return changes
 
 
 ## Main Script ############################################
@@ -618,7 +624,9 @@ if Config and os.path.isfile(Config):
         trigger_rescan = options['trigger_rescan']
     if 'ShowPreferences' in options and options['ShowPreferences']:
         ShowPreferences.update(options['ShowPreferences'])
-    if ('Version' not in options) or not options['Version'] or (options['Version'] < VERSION):
+    if 'MoviePreferences' in options and options['MoviePreferences']:
+        MoviePreferences.update(options['MoviePreferences'])
+    if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
         print("Old version of config file! Updating...")
         dumpSettings(Config)
     if test:
@@ -710,7 +718,7 @@ for Section in SectionList:
     group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
     changed = 0
     if group == "movie":
-        changed = checkMovies(doc)
+        changed = checkMovies(doc, Section)
     elif group == "show":
         for DirectoryNode in doc.getElementsByTagName("Directory"):
             show_key = DirectoryNode.getAttribute('key')
