@@ -415,20 +415,29 @@ def cleanUpFolders(section, max_size):
             for location in directory.getElementsByTagName("Location"):
                 path = getLocalPath(location.getAttribute("path"))
                 if os.path.isdir(path):
-                    for dir in os.listdir(path):
-                        dir_path = os.path.join(path, dir)
-                        size = getTotalSize(dir_path)
-                        if os.path.isdir(dir_path) and size < max_size * 1024 * 1024:
-                            try:
-                                if test:
-                                    log("**[Flagged]: " + dir_path)
-                                    log("Size " + str(size) + " bytes")
+                    for folder in os.listdir(path):
+                        dir_path = os.path.join(path, folder)
+                        if os.path.isdir(dir_path):
+                            if len(folder) == 1:                       #If folder name length is one assume videos are categorized alphabetically, search subdirectories
+                                subfolders = os.listdir(dir_path)
+                            else:
+                                subfolders = (" ",)
+                            for subfolder in subfolders:
+                                subfolder_path = os.path.join(path, folder, subfolder).strip()
+                                if os.path.exists(os.path.join(subfolder_path, '.nodelete')):       #Do not delete folders that have .nodelete in them
                                     continue
-                                shutil.rmtree(dir_path)
-                                log("**[DELETED] " + dir_path)
-                            except Exception as e:
-                                log("Unable to delete folder: %s" % e, True)
-                                continue
+                                size = getTotalSize(subfolder_path)
+                                if os.path.isdir(subfolder_path) and size < max_size * 1024 * 1024:
+                                    try:
+                                        if test: #or default_action.startswith("f"):
+                                            log("**[Flagged]: " + subfolder_path)
+                                            log("Size " + str(size) + " bytes")
+                                            continue
+                                        shutil.rmtree(subfolder_path)
+                                        log("**[DELETED] " + subfolder_path)
+                                    except Exception as e:
+                                        log("Unable to delete folder: %s" % e, True)
+                                        continue
 
 
 #Shows have a season pages that need to be navigated
