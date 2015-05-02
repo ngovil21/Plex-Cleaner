@@ -186,6 +186,7 @@ def dumpSettings(output):
         ('SectionList', SectionList),
         ('IgnoreSections', IgnoreSections),
         ('LogFile', LogFile),
+        ('trigger_rescan', trigger_rescan),
         ('Token', Token),
         ('Username', Username),
         ('Password', Password),
@@ -202,7 +203,6 @@ def dumpSettings(output):
         ('default_watched', default_watched),
         ('default_location', default_location),
         ('default_onDeck', default_onDeck),
-        ('trigger_rescan', trigger_rescan),
         ('ShowPreferences', OrderedDict(sorted(ShowPreferences.items()))),
         ('MoviePreferences', OrderedDict(sorted(MoviePreferences.items()))),
         ('Version', CONFIG_VERSION)
