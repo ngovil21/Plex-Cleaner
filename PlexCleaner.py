@@ -120,6 +120,11 @@ import argparse
 from collections import OrderedDict
 import time
 
+try:
+    import configparser as ConfigParser
+except:
+    import ConfigParser
+
 CONFIG_VERSION = 1.5
 
 try:
@@ -180,6 +185,9 @@ def getToken(user, passw):
 
 
 def dumpSettings(output):
+    #Remove old settings
+    if 'End Preferences' in ShowPreferences:
+        ShowPreferences.pop('End Preferences')
     settings = OrderedDict([
         ('Host', Host),
         ('Port', Port),
@@ -631,6 +639,7 @@ if Config and os.path.isfile(Config):
         dumpSettings(Config)
     if test:
         print(json.dumps(options, indent=2, sort_keys=True))  #if testing print out the loaded settings in the log
+
 
 if args.update_config:
     if Config and os.path.isfile(Config):
