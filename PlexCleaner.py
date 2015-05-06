@@ -572,6 +572,10 @@ if Config == "":
         Config = ".plexcleaner"
     elif os.path.isfile("Cleaner.conf"):
         Config = "Cleaner.conf"
+    elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
+        Config = os.path.join(sys.path[0], "Cleaner.conf")
+    elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
+        Config = os.path.join(sys.path[0], "Settings.cfg")
 
 if args.dump:
     #Output settings to a json config file and exit
