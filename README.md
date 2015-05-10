@@ -4,14 +4,15 @@ A Script to clean up space on your Plex Media Server!
 
 Automatically delete watched episodes or movies. Lots of customizable options.
 
-There are many options that can be edited in the script. To create a config file run the script with the option --dump [Path to Config file].
+To begin make a copy of Cleaner.conf.default and rename it as Cleaner.conf. You can then make edits to the Cleaner.conf file with your own settings. Descriptions of the settings are in the PlexCleaner.py script.
+
+Alternatively you can create a config file by running the script with the option --dump [Path to Config file].
 
     python PlexCleaner.py --dump "/path/to/config/file"
 
-PlexCleaner will then create a config file at the path specified with example values. You can then make edits to the config file based on your preferences.
-The formatting is very specific for the config file, if you have difficulty editing it, you can edit the default values in the script and then run the --dump argument to create a properly formatted config file.
+PlexCleaner will then create a config file at the path specified with example values. You can then make edits to the config file based on your preferences. The formatting is very specific for the config file, if you have difficulty editing it, you can edit the default values in the script and then run the --dump argument to create a properly formatted config file.
 
-By default plex will check in the users home directory for a .plexcleaner file then in the current directory for a .plexcleaner or Cleaner.conf file. If you stored the config file in another location you will need to load the config file using the --config argument.
+By default plex will check in the users home directory for a .plexcleaner file, then in the current directory for a .plexcleaner or Cleaner.conf file. If you stored the config file in another location you will need to load the config file using the --config argument.
 To do so you would run PlexCleaner as:
 
     python PlexCleaner.py --config "/path/to/config/file"
