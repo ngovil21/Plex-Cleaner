@@ -1,0 +1,57 @@
+{
+  "Host": "",
+  "Port": "",
+  "SectionList": [],
+  "IgnoreSections": [],
+  "LogFile": "",
+  "trigger_rescan": false,
+  "Token": "",
+  "Username": "",
+  "Password": "",
+  "RemoteMount": "",
+  "LocalMount": "",
+  "plex_delete": false,
+  "similar_files": true,
+  "cleanup_movie_folders": false,
+  "minimum_folder_size": 30,
+  "default_episodes": 0,
+  "default_minDays": 0,
+  "default_maxDays": 60,
+  "default_action": "flag",
+  "default_watched": true,
+  "default_location": "",
+  "default_onDeck": true,
+  "ShowPreferences": {
+    "Show 1": {
+      "maxDays": 30,
+      "minDays": 10,
+      "action": "delete",
+      "location": "/path/to/folder",
+      "watched": true,
+      "onDeck": true,
+      "episodes": 3
+    },
+    "Show 2": {
+      "maxDays": 30,
+      "minDays": 10,
+      "action": "delete",
+      "location": "/path/to/folder",
+      "watched": false,
+      "onDeck": false,
+      "episodes": 0
+    },
+    "Show 3": {
+      "action": "keep"
+    },
+    "Show Preferences": {}
+  },
+  "MoviePreferences": {
+    "Movie Preferences": "",
+    "action": "flag",
+    "location": "",
+    "minDays": 0,
+    "onDeck": true,
+    "watched": true
+  },
+  "Version": 1.5
+}
