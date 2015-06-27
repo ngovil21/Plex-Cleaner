@@ -159,6 +159,7 @@ def getToken(user, passw):
     URL = "https://plex.tv/users/sign_in.json"
     headers = {
         'X-Plex-Device-Name': 'Python',
+        'X-Plex-Username': user,
         'X-Plex-Platform': platform.system(),
         'X-Plex-Device': platform.system(),
         'X-Plex-Platform-Version': platform.release(),
