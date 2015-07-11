@@ -20,7 +20,10 @@ trigger_rescan = False  # trigger_rescan will rescan a section if changes are ma
 
 #Use Username/Password or Token for servers with PlexHome
 #To generate a proper Token, first put your username and password and run the script with the flag --test.
-#The Token will be printed in the console or in the logs.
+#The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
+#a readable files.
+#Shared is for users that you have invited to the server. This will use their watch information. Be careful with
+#the the default settings because it will delete shows users without any permissions.
 Username = ""
 Password = ""
 #  or
@@ -135,6 +138,7 @@ except:
     import urllib2
 
 
+# noinspection PyBroadException
 def log(msg, debug=False):
     try:
         if LogToFile:
@@ -214,8 +218,8 @@ def getAccessToken(Token):
 
 def dumpSettings(output):
     #Remove old settings
-    if 'End Preferences' in ShowPreferences:
-        ShowPreferences.pop('End Preferences')
+    if 'End Preferences' in Settings['ShowPreferences']:
+        Settings['ShowPreferences'].pop('End Preferences')
     # settings = OrderedDict([
     #     ('Host', Settings['Host']),
     #     ('Port', Settings['Port']),
