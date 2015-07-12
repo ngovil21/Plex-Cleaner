@@ -23,12 +23,12 @@ trigger_rescan = False  # trigger_rescan will rescan a section if changes are ma
 #The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
 #a readable files.
 #Shared is for users that you have invited to the server. This will use their watch information. Be careful with
-#the the default settings because it will delete shows users without any permissions.
+#what the default show settings are because deleting files will be done by the 
 Username = ""
 Password = ""
 #  or
 Token = ""
-Shared = False      #Is this account a Shared user?
+Shared = False
 #Remote Mapping ##########################################################
 # For use with managing a remote Plex Media Server that is locally mounted
 # This will replace the prefix of the remote file path with the local mount point.
