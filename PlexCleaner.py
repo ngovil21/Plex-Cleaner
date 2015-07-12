@@ -220,33 +220,6 @@ def dumpSettings(output):
     #Remove old settings
     if 'End Preferences' in Settings['ShowPreferences']:
         Settings['ShowPreferences'].pop('End Preferences')
-    # settings = OrderedDict([
-    #     ('Host', Settings['Host']),
-    #     ('Port', Settings['Port']),
-    #     ('SectionList', Settings['SectionList']),
-    #     ('IgnoreSections', Settings['IgnoreSections']),
-    #     ('LogFile', Settings['LogFile']),
-    #     ('trigger_rescan', Settings['trigger_rescan']),
-    #     ('Token', Settings['Token']),
-    #     ('Username', Settings['Username']),
-    #     ('Password', Settings['Password']),
-    #     ('RemoteMount', Settings['RemoteMount']),
-    #     ('LocalMount', Settings['LocalMount']),
-    #     ('plex_delete', Settings['plex_delete']),
-    #     ('similar_files', similar_files),
-    #     ('cleanup_movie_folders', cleanup_movie_folders),
-    #     ('minimum_folder_size', minimum_folder_size),
-    #     ('default_episodes', Settings['default_epiosdes']),
-    #     ('default_minDays', default_minDays),
-    #     ('default_maxDays', default_maxDays),
-    #     ('default_action', Settings['default_action']),
-    #     ('default_watched', default_watched),
-    #     ('default_location', default_location),
-    #     ('default_onDeck', default_onDeck),
-    #     ('ShowPreferences', OrderedDict(sorted(ShowPreferences.items()))),
-    #     ('MoviePreferences', OrderedDict(sorted(MoviePreferences.items()))),
-    #     ('Version', CONFIG_VERSION)
-    # ])
     Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
     Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
     Settings['Version'] = CONFIG_VERSION
