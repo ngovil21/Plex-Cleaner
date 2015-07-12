@@ -771,6 +771,8 @@ if Settings['Shared'] and Settings['Token']:
     accessToken = getAccessToken(Settings['Token'])
     if accessToken:
         Settings['Token'] = accessToken
+        if test:
+            log("Access Token: " + Settings['Token'], True)
     else:
         log("Access Token not found or not a shared account")
 
