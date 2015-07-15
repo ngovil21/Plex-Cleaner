@@ -2,13 +2,14 @@
 # -*- coding: utf-8 -*-
 
 # PlexCleaner based on PlexAutoDelete by Steven4x4 with modifications from others
-#Rewrite done by ngovil21 to make the script more cohesive and updated for Plex Home
-#Version 1.1 - Added option dump and load settings from a config file
+# Rewrite done by ngovil21 to make the script more cohesive and updated for Plex Home
+# Version 1.1 - Added option dump and load settings from a config file
+# Version 1.7 - Added options for Shared Users
 
 ## Config File ###########################################################
-#All settings in the config file will overwrite the settings here
+# All settings in the config file will overwrite the settings here
 
-Config = ""  #Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
+Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
 
 ## Global Settings #######################################################
 Host = ""  # IP Address of the Plex Media Server, by default 127.0.0.1 will be used
@@ -18,22 +19,24 @@ IgnoreSections = []  # Sections to skip cleaning, for use when Settings['Section
 LogFile = ""  # Location of log file to save console output
 trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
 
-#Use Username/Password or Token for servers with PlexHome
-#To generate a proper Token, first put your username and password and run the script with the flag --test.
-#The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
-#a readable files.
-#Shared is for users that you have invited to the server. This will use their watch information. Be careful with
-#what the default show settings are because deleting files will be done by the 
+# Use Username/Password or Token for servers with PlexHome
+# To generate a proper Token, first put your username and password and run the script with the flag --test.
+# The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
+# a readable files.
+# Shared is for users that you have invited to the server. This will use their watch information. Be careful with
+# what the default show settings are because deleting files will be done by the OS. To help map the server for
+# Shared users, you can specify the server friendly name or machine identifier.
 Username = ""
 Password = ""
 #  or
 Token = ""
 Shared = False
-#Remote Mapping ##########################################################
+DeviceName = ""
+# Remote Mapping ##########################################################
 # For use with managing a remote Plex Media Server that is locally mounted
 # This will replace the prefix of the remote file path with the local mount point.
-RemoteMount = ""  #Path on the remote server to the media files
-LocalMount = ""  #Path on the local computer to the media files
+RemoteMount = ""  # Path on the remote server to the media files
+LocalMount = ""  # Path on the local computer to the media files
 ##########################################################################
 
 ## DEFAULT SETTINGS PER SHOW #############################################
@@ -94,18 +97,18 @@ ShowPreferences = {
                "onDeck": True, "maxDays": 30},
     "Show 2": {"episodes": 0, "watched": False, "minDays": 10, "action": "delete", "location": "/path/to/folder",
                "onDeck": False, "maxDays": 30},
-    "Show 3": {"action": "keep"},  #This show will skipped
+    "Show 3": {"action": "keep"},  # This show will skipped
     "Show Preferences": {}  # Keep this line
 }
 # Movie specific settings, settings you would like to apply to movie sections only. These settings will override the default
 # settings set above. Change the default value here or in the config file. Use this for Movie Libraries.
 MoviePreferences = {
-    'watched': default_watched,              # Delete only watched episodes
-    'minDays': default_minDays,              # Minimum number of days to keep
-    'action': default_action,                # Action to perform on movie files (delete/move/copy)
-    'location': default_location,            # Location to keep movie files
-    'onDeck': default_onDeck,                # Do not delete move if on deck
-    'Movie Preferences': ""                  # Keep this line
+    'watched': default_watched,  # Delete only watched episodes
+    'minDays': default_minDays,  # Minimum number of days to keep
+    'action': default_action,  # Action to perform on movie files (delete/move/copy)
+    'location': default_location,  # Location to keep movie files
+    'onDeck': default_onDeck,  # Do not delete move if on deck
+    'Movie Preferences': ""  # Keep this line
 }
 ##########################################################################
 
@@ -130,7 +133,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.6
+CONFIG_VERSION = 1.7
 client_id = uuid.uuid1()
 try:
     import urllib.request as urllib2
@@ -182,6 +185,7 @@ def getToken(user, passw):
             str_response = response.read()
         else:
             import urllib
+
             req = urllib.request.Request(URL, b"None", headers)
             response = urllib.request.urlopen(req)
             str_response = response.readall().decode('utf-8')
@@ -190,68 +194,50 @@ def getToken(user, passw):
     except:
         return ""
 
-#For Shared users, get the Access Token for the server, get the https url as well
+
+# For Shared users, get the Access Token for the server, get the https url as well
 def getAccessToken(Token):
     resources = getURLX("https://plex.tv/api/resources?includeHttps=1")
     if not resources:
         return ""
     devices = resources.getElementsByTagName("Device")
     for device in devices:
+        if len(devices) == 1 or (Settings['DeviceName'] \
+                                         and (
+                    Settings['DeviceName'].lower() in device.getAttribute('name').lower() or Settings[
+                'DeviceName'].lower() in device.getAttribute('clientIdentifier').lower())):
+            access_token = device.getAttribute('accessToken')
+            if not access_token:
+                return ""
+            return access_token
         connections = device.getElementsByTagName("Connection")
         for connection in connections:
             if connection.getAttribute('address') == Settings['Host']:
-                accessToken = device.getAttribute("accessToken")
-                if not accessToken:
+                access_token = device.getAttribute("accessToken")
+                if not access_token:
                     return ""
                 uri = connection.getAttribute('uri')
                 match = re.compile("(http[s]?:\/\/.*?):(\d*)").match(uri)
-                print(device.toprettyxml())
+                # print(device.toprettyxml())
                 if match:
                     Settings['Host'] = match.group(1)
                     Settings['Port'] = match.group(2)
                     # print("Host: " + Settings['Host'])
                     # print("Port: " + Settings['Port'])
-                if test:
-                    log("Access Token: " + Token)
-                return accessToken
+                return access_token
     return ""
 
+
 def dumpSettings(output):
-    #Remove old settings
+    # Remove old settings
     if 'End Preferences' in Settings['ShowPreferences']:
         Settings['ShowPreferences'].pop('End Preferences')
-    # settings = OrderedDict([
-    #     ('Host', Settings['Host']),
-    #     ('Port', Settings['Port']),
-    #     ('SectionList', Settings['SectionList']),
-    #     ('IgnoreSections', Settings['IgnoreSections']),
-    #     ('LogFile', Settings['LogFile']),
-    #     ('trigger_rescan', Settings['trigger_rescan']),
-    #     ('Token', Settings['Token']),
-    #     ('Username', Settings['Username']),
-    #     ('Password', Settings['Password']),
-    #     ('RemoteMount', Settings['RemoteMount']),
-    #     ('LocalMount', Settings['LocalMount']),
-    #     ('plex_delete', Settings['plex_delete']),
-    #     ('similar_files', similar_files),
-    #     ('cleanup_movie_folders', cleanup_movie_folders),
-    #     ('minimum_folder_size', minimum_folder_size),
-    #     ('default_episodes', Settings['default_epiosdes']),
-    #     ('default_minDays', default_minDays),
-    #     ('default_maxDays', default_maxDays),
-    #     ('default_action', Settings['default_action']),
-    #     ('default_watched', default_watched),
-    #     ('default_location', default_location),
-    #     ('default_onDeck', default_onDeck),
-    #     ('ShowPreferences', OrderedDict(sorted(ShowPreferences.items()))),
-    #     ('MoviePreferences', OrderedDict(sorted(MoviePreferences.items()))),
-    #     ('Version', CONFIG_VERSION)
-    # ])
     Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
     Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
     Settings['Version'] = CONFIG_VERSION
     with open(output, 'w') as outfile:
         json.dump(Settings, outfile, indent=2)
+
 
 def LoadSettings(opts):
     s = OrderedDict()
@@ -265,6 +251,7 @@ def LoadSettings(opts):
     s['Username'] = opts.get('Username', Username)
     s['Password'] = opts.get('Password', Password)
     s['Shared'] = opts.get('Shared', Shared)
+    s['DeviceName'] = opts.get('DeviceName', DeviceName)
     s['RemoteMount'] = opts.get('RemoteMount', RemoteMount)
     s['LocalMount'] = opts.get('LocalMount', LocalMount)
     s['plex_delete'] = opts.get('plex_delete', plex_delete)
@@ -316,7 +303,8 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None)
             continue
     return None
 
-#Returns if a file action was performed (move, copy, delete)
+
+# Returns if a file action was performed (move, copy, delete)
 def performAction(file, action, media_id=0, location=""):
     global DeleteCount, MoveCount, CopyCount, FlaggedCount
 
@@ -386,11 +374,14 @@ def performAction(file, action, media_id=0, location=""):
         log("[FLAGGED] " + file)
         FlaggedCount += 1
         return False
+
+
 def get_input(prompt=""):
     if sys.version < 3:
         return raw_input(prompt)
     else:
         return input(prompt)
+
 
 def CheckOnDeck(media_id):
     global OnDeckCount
@@ -411,7 +402,7 @@ def getLocalPath(file):
     return file
 
 
-#gets the total size of a file in bytes, recursively searches through folders
+# gets the total size of a file in bytes, recursively searches through folders
 def getTotalSize(file):
     total_size = os.path.getsize(file)
     if os.path.isdir(file):
@@ -455,7 +446,7 @@ def getMediaInfo(VideoNode):
         PartNode = Media.getElementsByTagName("Part")
         for Part in PartNode:
             file = Part.getAttribute("file")
-            if sys.version < '3':  #remove HTML quoted characters, only works in python < 3
+            if sys.version < '3':  # remove HTML quoted characters, only works in python < 3
                 file = urllib2.unquote(file.encode('utf-8'))
             else:
                 file = urllib2.unquote(file)
@@ -463,8 +454,8 @@ def getMediaInfo(VideoNode):
                     'DaysSinceVideoLastViewed': DaysSinceVideoLastViewed, 'file': file, 'media_id': media_id}
 
 
-#Movies are all listed on one page
-def checkMovies(doc,section):
+# Movies are all listed on one page
+def checkMovies(doc, section):
     global FileCount
     global KeptCount
 
@@ -481,11 +472,13 @@ def checkMovies(doc,section):
                 compareDay = m['DaysSinceVideoAdded']
             else:
                 compareDay = m['DaysSinceVideoLastViewed']
-            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
+            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
+            title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
             checkedWatched = (m['view'] > 0)
         else:
             compareDay = m['DaysSinceVideoAdded']
-            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (title, m['view'], m['DaysSinceVideoAdded'], onDeck))
+            log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
+            title, m['view'], m['DaysSinceVideoAdded'], onDeck))
             checkedWatched = True
         FileCount += 1
         checkDeck = False
@@ -494,7 +487,8 @@ def checkMovies(doc,section):
         check = (not movie_settings['action'].startswith('k')) and checkedWatched and (
             compareDay >= movie_settings['minDays']) and (not checkDeck)
         if check:
-            if performAction(file=m['file'], action=movie_settings['action'], media_id=movie_id, location=movie_settings['location']):
+            if performAction(file=m['file'], action=movie_settings['action'], media_id=movie_id,
+                             location=movie_settings['location']):
                 changes += 1
         else:
             log('[Keeping] ' + m['file'])
@@ -506,7 +500,7 @@ def checkMovies(doc,section):
     return changes
 
 
-#Cleans up orphaned folders in a section that are less than the max_size (in megabytes)
+# Cleans up orphaned folders in a section that are less than the max_size (in megabytes)
 def cleanUpFolders(section, max_size):
     for directory in doc_sections.getElementsByTagName("Directory"):
         if directory.getAttribute("key") == section:
@@ -516,18 +510,20 @@ def cleanUpFolders(section, max_size):
                     for folder in os.listdir(path):
                         dir_path = os.path.join(path, folder)
                         if os.path.isdir(dir_path):
-                            if len(folder) == 1:                       #If folder name length is one assume videos are categorized alphabetically, search subdirectories
+                            if len(
+                                    folder) == 1:  # If folder name length is one assume videos are categorized alphabetically, search subdirectories
                                 subfolders = os.listdir(dir_path)
                             else:
                                 subfolders = (" ",)
                             for subfolder in subfolders:
                                 subfolder_path = os.path.join(path, folder, subfolder).strip()
-                                if os.path.exists(os.path.join(subfolder_path, '.nodelete')):       #Do not delete folders that have .nodelete in them
+                                if os.path.exists(os.path.join(subfolder_path,
+                                                               '.nodelete')):  # Do not delete folders that have .nodelete in them
                                     continue
                                 size = getTotalSize(subfolder_path)
                                 if os.path.isdir(subfolder_path) and size < max_size * 1024 * 1024:
                                     try:
-                                        if test:  #or default_action.startswith("f"):
+                                        if test:  # or default_action.startswith("f"):
                                             log("**[Flagged]: " + subfolder_path)
                                             log("Size " + str(size) + " bytes")
                                             continue
@@ -538,12 +534,12 @@ def cleanUpFolders(section, max_size):
                                         continue
 
 
-#Shows have a season pages that need to be navigated
+# Shows have a season pages that need to be navigated
 def checkShow(show):
     global KeptCount
     global FileCount
-    #Parse all of the episode information from the season pages
-    if not show:            #Check if show page is None or empty
+    # Parse all of the episode information from the season pages
+    if not show:  # Check if show page is None or empty
         log("Failed to load show page. Skipping...")
         return 0
     episodes = {}
@@ -555,26 +551,26 @@ def checkShow(show):
         if (key.lower() in show_name.lower()) or (key == show_id):
             show_settings.update(Settings['ShowPreferences'][key])
             break
-    #if action is keep then skip checking
-    if show_settings['action'].startswith('k'):  #If keeping on show just skip checking
+    # if action is keep then skip checking
+    if show_settings['action'].startswith('k'):  # If keeping on show just skip checking
         log("[Keeping] " + show_name)
         log("")
         return 0
-    for SeasonDirectoryNode in show.getElementsByTagName("Directory"):  #Each directory is a season
-        if not SeasonDirectoryNode.getAttribute('type') == "season":    #Only process Seasons (skips Specials)
+    for SeasonDirectoryNode in show.getElementsByTagName("Directory"):  # Each directory is a season
+        if not SeasonDirectoryNode.getAttribute('type') == "season":  # Only process Seasons (skips Specials)
             continue
         season_key = SeasonDirectoryNode.getAttribute('key')
-        season_num = str(SeasonDirectoryNode.getAttribute('index'))  #Directory index refers to the season number
+        season_num = str(SeasonDirectoryNode.getAttribute('index'))  # Directory index refers to the season number
         if season_num.isdigit():
             season_num = ("%02d" % int(season_num))
         season = getURLX(Settings['Host'] + ":" + Settings['Port'] + season_key)
         if not season:
             continue
         for VideoNode in season.getElementsByTagName("Video"):
-            episode_num = str(VideoNode.getAttribute('index'))  #Video index refers to the episode number
-            if episode_num.isdigit():  #Check if numeric index
+            episode_num = str(VideoNode.getAttribute('index'))  # Video index refers to the episode number
+            if episode_num.isdigit():  # Check if numeric index
                 episode_num = ("%03d" % int(episode_num))
-            if episode_num == "":  #if episode_num blank here, then use something else to get order
+            if episode_num == "":  # if episode_num blank here, then use something else to get order
                 episode_num = VideoNode.getAttribute('originallyAvailableAt')
                 if episode_num == "":
                     episode_num = VideoNode.getAttribute('title')
@@ -590,7 +586,7 @@ def checkShow(show):
             else:
                 compareDay = m['DaysSinceVideoAdded']
             key = '%sx%s' % (
-                season_num, episode_num)  #store episode with key based on season number and episode number for sorting
+                season_num, episode_num)  # store episode with key based on season number and episode number for sorting
             episodes[key] = {'season': season_num, 'episode': episode_num, 'title': title, 'view': m['view'],
                              'compareDay': compareDay, 'file': m['file'], 'media_id': m['media_id']}
             FileCount += 1
@@ -608,7 +604,8 @@ def checkShow(show):
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
         if ((len(episodes) - count) > show_settings['episodes']) or (
-                ep['view'] > show_settings['maxDays']):  #if we have more episodes, then check if we can delete the file
+                    ep['view'] > show_settings[
+                    'maxDays']):  # if we have more episodes, then check if we can delete the file
             checkDeck = False
             if show_settings['onDeck']:
                 checkDeck = onDeck
@@ -628,10 +625,9 @@ def checkShow(show):
         count += 1
     return changes
 
-
 ## Main Script ############################################
 
-#parse arguments
+# parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
 parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?',
@@ -647,7 +643,7 @@ test = args.test
 
 if args.config:
     Config = args.config
-#If no config file is provided, check if there is a config file in first the user directory, or the current directory.
+# If no config file is provided, check if there is a config file in first the user directory, or the current directory.
 if Config == "":
     print(os.path.join(os.path.expanduser("~"), ".plexcleaner"))
     if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
@@ -662,7 +658,7 @@ if Config == "":
         Config = os.path.join(sys.path[0], "Settings.cfg")
 
 if args.dump:
-    #Output settings to a json config file and exit
+    # Output settings to a json config file and exit
     print("Saving settings to " + args.dump)
     dumpSettings(args.dump)
     exit()
@@ -672,7 +668,7 @@ Settings = OrderedDict()
 if Config and os.path.isfile(Config):
     print("Loading config file: " + Config)
     with open(Config, 'r') as infile:
-        opt_string = infile.read().replace('\n', '')    #read in file removing breaks
+        opt_string = infile.read().replace('\n', '')  # read in file removing breaks
         # Escape odd number of backslashes (Windows paths are a problem)
         opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
         options = json.loads(opt_string)
@@ -732,8 +728,7 @@ else:
     Settings = LoadSettings(Settings)
 
 if test:
-    print(json.dumps(Settings, indent=2, sort_keys=True))  #if testing print out the loaded settings in the console
-
+    print(json.dumps(Settings, indent=2, sort_keys=True))  # if testing print out the loaded settings in the console
 
 if args.update_config:
     if Config:
@@ -843,7 +838,8 @@ for Section in Settings['SectionList']:
             changed += checkShow(getURLX(Settings['Host'] + ":" + Settings['Port'] + show_key))
     if changed > 0 and Settings['trigger_rescan']:
         log("Triggering rescan...")
-        if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1", parseXML=False):
+        if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
+                   parseXML=False):
             RescannedSections.append(Section)
 
 log("")
