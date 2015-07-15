@@ -107,8 +107,7 @@ MoviePreferences = {
     'minDays': default_minDays,  # Minimum number of days to keep
     'action': default_action,  # Action to perform on movie files (delete/move/copy)
     'location': default_location,  # Location to keep movie files
-    'onDeck': default_onDeck,  # Do not delete move if on deck
-    'Movie Preferences': ""  # Keep this line
+    'onDeck': default_onDeck  # Do not delete move if on deck
 }
 ##########################################################################
 
@@ -232,6 +231,8 @@ def dumpSettings(output):
     # Remove old settings
     if 'End Preferences' in Settings['ShowPreferences']:
         Settings['ShowPreferences'].pop('End Preferences')
+    if 'Movie Preferences' in Settings['MoviePreferences']:
+        Settings['MoviePreferences'].pop('Movie Preferences')
     Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
     Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
     Settings['Version'] = CONFIG_VERSION
@@ -461,7 +462,7 @@ def checkMovies(doc, section):
 
     changes = 0
     movie_settings = default_settings.copy()
-    movie_settings.update(MoviePreferences)
+    movie_settings.update(Settings['MoviePreferences'])
     for VideoNode in doc.getElementsByTagName("Video"):
         title = VideoNode.getAttribute("title")
         movie_id = VideoNode.getAttribute("ratingKey")
