@@ -226,20 +226,7 @@ def getAccessToken(Token):
                 return access_token
     return ""
 
-
-def dumpSettings(output):
-    # Remove old settings
-    if 'End Preferences' in Settings['ShowPreferences']:
-        Settings['ShowPreferences'].pop('End Preferences')
-    if 'Movie Preferences' in Settings['MoviePreferences']:
-        Settings['MoviePreferences'].pop('Movie Preferences')
-    Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
-    Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
-    Settings['Version'] = CONFIG_VERSION
-    with open(output, 'w') as outfile:
-        json.dump(Settings, outfile, indent=2)
-
-
+#Load Settings from json into an OrderedDict, with defaults
 def LoadSettings(opts):
     s = OrderedDict()
     s['Host'] = opts.get('Host', Host)
@@ -267,9 +254,21 @@ def LoadSettings(opts):
     s['default_location'] = opts.get('default_location', default_location)
     s['default_onDeck'] = opts.get('default_onDeck', default_onDeck)
     s['ShowPreferences'] = OrderedDict(sorted(opts.get('ShowPreferences', ShowPreferences).items()))
-    s['MoviePreferences'] = opts.get('MoviePreferences', MoviePreferences)
+    s['MoviePreferences'] = OrderedDict(sorted(opts.get('MoviePreferences', MoviePreferences).items()))
     s['Version'] = opts.get('Version', CONFIG_VERSION)
     return s
+
+def dumpSettings(output):
+    # Remove old settings
+    if 'End Preferences' in Settings['ShowPreferences']:
+        Settings['ShowPreferences'].pop('End Preferences')
+    if 'Movie Preferences' in Settings['MoviePreferences']:
+        Settings['MoviePreferences'].pop('Movie Preferences')
+    Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
+    Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
+    Settings['Version'] = CONFIG_VERSION
+    with open(output, 'w') as outfile:
+        json.dump(Settings, outfile, indent=2)
 
 
 def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None):
@@ -729,7 +728,7 @@ else:
     Settings = LoadSettings(Settings)
 
 if test:
-    print(json.dumps(Settings, indent=2, sort_keys=True))  # if testing print out the loaded settings in the console
+    print(json.dumps(Settings, indent=2, sort_keys=False))  # if testing print out the loaded settings in the console
 
 if args.update_config:
     if Config:
