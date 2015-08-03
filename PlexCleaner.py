@@ -110,6 +110,8 @@ MoviePreferences = {
     'onDeck': default_onDeck  # Do not delete move if on deck
 }
 
+# Profiles allow for customized settings based on Plex Collections. This allows managing of common settings using the Plex Web interface.
+# First set the Profile here, then add the TV show to the collection in Plex.
 Profiles = {
     "Profile 1": {"episodes": 3, "watched": True, "minDays": 10, "action": "delete", "location": "/path/to/folder",
                   "onDeck": True, "maxDays": 30}
