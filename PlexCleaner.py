@@ -5,7 +5,7 @@
 # Rewrite done by ngovil21 to make the script more cohesive and updated for Plex Home
 # Version 1.1 - Added option dump and load settings from a config file
 # Version 1.7 - Added options for Shared Users
-
+# Version 1.8 - Added Profies
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 
@@ -109,6 +109,11 @@ MoviePreferences = {
     'location': default_location,  # Location to keep movie files
     'onDeck': default_onDeck  # Do not delete move if on deck
 }
+
+Profiles = {
+    "Profile 1": {"episodes": 3, "watched": True, "minDays": 10, "action": "delete", "location": "/path/to/folder",
+                  "onDeck": True, "maxDays": 30}
+}
 ##########################################################################
 
 ## DO NOT EDIT BELOW THIS LINE ###########################################
@@ -132,7 +137,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.7
+CONFIG_VERSION = 1.8
 client_id = uuid.uuid1()
 try:
     import urllib.request as urllib2
@@ -255,6 +260,7 @@ def LoadSettings(opts):
     s['default_onDeck'] = opts.get('default_onDeck', default_onDeck)
     s['ShowPreferences'] = OrderedDict(sorted(opts.get('ShowPreferences', ShowPreferences).items()))
     s['MoviePreferences'] = OrderedDict(sorted(opts.get('MoviePreferences', MoviePreferences).items()))
+    s['Profiles'] = OrderedDict(sorted(opts.get('Profiles', Profiles).items()))
     s['Version'] = opts.get('Version', CONFIG_VERSION)
     return s
 
@@ -266,6 +272,7 @@ def dumpSettings(output):
         Settings['MoviePreferences'].pop('Movie Preferences')
     Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
     Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
+    Settings['Profiles'] = OrderedDict(sorted(Settings['Profiles'].items()))
     Settings['Version'] = CONFIG_VERSION
     with open(output, 'w') as outfile:
         json.dump(Settings, outfile, indent=2)
@@ -535,15 +542,23 @@ def cleanUpFolders(section, max_size):
 
 
 # Shows have a season pages that need to be navigated
-def checkShow(show):
+def checkShow(showDirectory):
     global KeptCount
     global FileCount
     # Parse all of the episode information from the season pages
+    episodes = {}
+    show_settings = default_settings.copy()
+    show_metadata = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + showDirectory.getAttribute('ratingKey'))
+    collections = show_metadata.getElementsByTagName("Collection")
+    for collection in collections:
+        collection_tag = collection.getAttribute('tag')
+        if collection_tag and collection_tag in Settings['Profiles']:
+            show_settings.update(Settings['Profiles'][collection_tag])
+            print("Using profile: " + collection_tag)
+    show = getURLX(Settings['Host'] + ":" + Settings['Port'] + showDirectory.getAttribute('key'))
     if not show:  # Check if show page is None or empty
         log("Failed to load show page. Skipping...")
         return 0
-    episodes = {}
-    show_settings = default_settings.copy()
     media_container = show.getElementsByTagName("MediaContainer")[0]
     show_id = media_container.getAttribute('key')
     show_name = media_container.getAttribute('parentTitle')
@@ -603,9 +618,8 @@ def checkShow(show):
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Added: %d | On Deck: %s" % (
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
-        if ((len(episodes) - count) > show_settings['episodes']) or (
-                    ep['view'] > show_settings[
-                    'maxDays']):  # if we have more episodes, then check if we can delete the file
+        if ((len(episodes) - count) > show_settings['episodes']) or \
+                (ep['compareDay'] > show_settings['maxDays'] > 0):  # if we have more episodes, then check if we can delete the file
             checkDeck = False
             if show_settings['onDeck']:
                 checkDeck = onDeck
@@ -834,8 +848,7 @@ for Section in Settings['SectionList']:
         changed = checkMovies(doc, Section)
     elif group == "show":
         for DirectoryNode in doc.getElementsByTagName("Directory"):
-            show_key = DirectoryNode.getAttribute('key')
-            changed += checkShow(getURLX(Settings['Host'] + ":" + Settings['Port'] + show_key))
+            changed += checkShow(DirectoryNode)
     if changed > 0 and Settings['trigger_rescan']:
         log("Triggering rescan...")
         if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
