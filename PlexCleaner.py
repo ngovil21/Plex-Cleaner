@@ -87,6 +87,8 @@ default_maxDays = 60  # Maximum number of days to keep an episode
 default_location = ''  # /path/to/file
 # default_homeUsers specifies the home users that the script will try to check watch status of in Plex Home
 # This will check if all users in the list have watched a show. Separate each user with a comma
+# You may use 'all' for the home Users and the script will check watch status of all the users in the Plex Home (Including Guest account if enabled)
+# It is probably better to list the users explicitly
 default_homeUsers = ''         # 'Bob,Joe,Will'
 ##########################################################################
 
@@ -94,7 +96,7 @@ default_homeUsers = ''         # 'Bob,Joe,Will'
 # Customized Settings for certain shows. Use this to override default settings.
 # Only the settings that are being changed need to be given. The setting will match the default settings above
 # You can also specify an id instead of the Show Name. The id is the id assigned by Plex to the show
-# Ex: 'Show Name':{'episodes':3,'watched':True/False,'minDays':,'action':'copy','location':'/path/to/folder'},
+# Ex: 'Show Name':{'episodes':3,'watched':True/False,'minDays':,'action':'copy','location':'/path/to/folder','homeUsers':'Billy,Bob,Joe'},
 # Make sure each show is separated by a comma. Use this for TV shows
 ShowPreferences = {
     "Show 1": {"episodes": 3, "watched": True, "minDays": 10, "action": "delete", "location": "/path/to/folder",
@@ -118,7 +120,7 @@ MoviePreferences = {
 # First set the Profile here, then add the TV show to the collection in Plex.
 Profiles = {
     "Profile 1": {"episodes": 3, "watched": True, "minDays": 10, "action": "delete", "location": "/path/to/folder",
-                  "onDeck": True, "maxDays": 30}
+                  "onDeck": True, "maxDays": 30, 'homeUsers': ''}
 }
 ##########################################################################
 
@@ -498,6 +500,8 @@ def checkUsersWatched(users, media_id):
     if not home_user_tokens:
         home_user_tokens = getPlexHomeUserTokens()
     compareDay = -1
+    if 'all' in users:
+        users = home_user_tokens.keys()
     for u in users:
         if u in home_user_tokens:
             user_media_page = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + media_id, token=home_user_tokens[u])
@@ -515,7 +519,8 @@ def checkUsersWatched(users, media_id):
                         if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:               #Find the user who has seen the episode last
                             compareDay = DaysSinceVideoLastViewed
                 else:   #Video has not been seen by this user, return -1 for unseen
-                    #log(u + " has not seen this video!")
+                    if test:
+                        log(u + " has not seen the video: " + media_id)
                     return -1
             else:
                 print("Not Found!")
@@ -758,10 +763,10 @@ if args.config:
 if Config == "":
     if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
         Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
-    elif os.path.isfile(".plexcleaner"):
-        Config = ".plexcleaner"
-    elif os.path.isfile("Cleaner.conf"):
-        Config = "Cleaner.conf"
+    # elif os.path.isfile(".plexcleaner"):
+    #     Config = ".plexcleaner"
+    # elif os.path.isfile("Cleaner.conf"):
+    #     Config = "Cleaner.conf"
     elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
         Config = os.path.join(sys.path[0], "Cleaner.conf")
     elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
