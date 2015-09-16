@@ -165,7 +165,7 @@ def log(msg, debug = False):
     except:
         print("Error logging message")
     try:
-        print(msg)
+        print(msg.encode('ascii','replace').decode())
     except:
         print("Cannot print message")
 
@@ -520,7 +520,7 @@ def checkUsersWatched(users, media_id):
                             compareDay = DaysSinceVideoLastViewed
                 else:   #Video has not been seen by this user, return -1 for unseen
                     if test:
-                        log(u + " has not seen the video: " + media_id)
+                        log(u + " has not seen the video: " + media_id, True)
                     return -1
             else:
                 print("Not Found!")
