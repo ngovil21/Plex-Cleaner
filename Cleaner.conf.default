@@ -42,11 +42,9 @@
     },
     "Show 3": {
       "action": "keep"
-    },
-    "Show Preferences": {}
+    }
   },
   "MoviePreferences": {
-    "Movie Preferences": "",
     "action": "flag",
     "location": "",
     "minDays": 0,
