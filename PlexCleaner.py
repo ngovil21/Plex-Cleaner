@@ -7,6 +7,7 @@
 # Version 1.7 - Added options for Shared Users
 # Version 1.8 - Added Profies
 # Version 1.9 - Added options for checking watch status for multiple users in Plex Home
+# Version 1.10 - Added ability to select section by title, preparation for new config
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 
@@ -146,7 +147,6 @@ except:
     import ConfigParser
 
 CONFIG_VERSION = 1.9
-debug_mode = False
 client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
@@ -233,7 +233,6 @@ def getAccessToken(Token):
                     return ""
                 uri = connection.getAttribute('uri')
                 match = re.compile("(http[s]?:\/\/.*?):(\d*)").match(uri)
-                # print(device.toprettyxml())
                 if match:
                     Settings['Host'] = match.group(1)
                     Settings['Port'] = match.group(2)
@@ -637,7 +636,6 @@ def checkShow(showDirectory):
     global KeptCount
     global FileCount
     # Parse all of the episode information from the season pages
-    episodes = []
     show_settings = default_settings.copy()
     show_metadata = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + showDirectory.getAttribute('ratingKey'))
     collections = show_metadata.getElementsByTagName("Collection")
@@ -665,8 +663,9 @@ def checkShow(showDirectory):
     check_users = []
     if show_settings['homeUsers']:
         check_users = show_settings['homeUsers'].strip(" ,").lower().split(",")
-        for i in range(0, len(check_users)):  # Remove extra spaces and commas
-            check_users[i] = check_users[i].strip(", ")
+        for k in range(0, len(check_users)):  # Remove extra spaces and commas
+            check_users[k] = check_users[k].strip(", ")
+    episodes = []
     for SeasonDirectoryNode in show.getElementsByTagName("Directory"):  # Each directory is a season
         if not SeasonDirectoryNode.getAttribute('type') == "season":  # Only process Seasons (skips Specials)
             continue
@@ -689,7 +688,6 @@ def checkShow(showDirectory):
                         episode_num = VideoNode.getAttribute('addedAt')
             title = VideoNode.getAttribute('title')
             m = getMediaInfo(VideoNode)
-            compareDay = -1
             if show_settings['watched']:
                 if check_users:
                     show_settings['onDeck'] = False
@@ -714,7 +712,8 @@ def checkShow(showDirectory):
             FileCount += 1
     count = 0
     changes = 0
-    for ep in episodes:
+    for k in range(0, len(episodes)):
+        ep = episodes[k]
         onDeck = CheckOnDeck(ep['media_id'])
         if show_settings['watched']:
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Last Viewed: %d | On Deck: %s" % (
@@ -724,9 +723,7 @@ def checkShow(showDirectory):
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Added: %d | On Deck: %s" % (
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
-        if not (not ((len(episodes) - count) > show_settings['episodes']) and not (
-                    (ep['compareDay'] > show_settings['maxDays']) and (
-                    show_settings['maxDays'] > 0))):  # if we have more episodes, then check if we can delete the file
+        if not (not ((len(episodes) - k) > show_settings['episodes']) and not (ep['compareDay'] > show_settings['maxDays'] > 0)):  # if we have more episodes, then check if we can delete the file
             checkDeck = False
             if show_settings['onDeck']:
                 checkDeck = onDeck
@@ -759,6 +756,7 @@ parser.add_argument("--config", "-config", "--load", "-load",
 parser.add_argument("--update_config", "-update_config", action="store_true",
                     help="Update the config file with new settings from the script and exit")
 parser.add_argument("--debug", "-debug", action="store_true", help="Run script in debug mode to log more error information")
+parser.add_argument("--update_config", "-update_config", action="store_true", help="Prompts for editing the config from the commandline")
 
 args = parser.parse_args()
 
@@ -888,9 +886,9 @@ if (not Settings['SectionList']) and doc_sections:
     for Section in doc_sections.getElementsByTagName("Directory"):
         if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in Settings['IgnoreSections']:
             Settings['SectionList'].append(Section.getAttribute("key"))
-elif doc_sections and Settings['SectionList']:           #Replace section names with the proper id(/key)
+elif doc_sections and Settings['SectionList']:  # Replace section names with the proper id(/key)
     for i in range(0, len(Settings['SectionList'])):
-        if isinstance(Settings['SectionList'][i], int):  #Skip checking name of integers (these are keys)
+        if isinstance(Settings['SectionList'][i], int):  # Skip checking name of integers (these are keys)
             continue
         for Section in doc_sections.getElementsByTagName("Directory"):
             if Section.getAttribute("title") == str(Settings['SectionList'][i]):
