@@ -888,12 +888,13 @@ if (not Settings['SectionList']) and doc_sections:
     for Section in doc_sections.getElementsByTagName("Directory"):
         if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in Settings['IgnoreSections']:
             Settings['SectionList'].append(Section.getAttribute("key"))
-elif doc_sections and Settings['SectionList']:
+elif doc_sections and Settings['SectionList']:           #Replace section names with the proper id(/key)
     for i in range(0, len(Settings['SectionList'])):
-        if isinstance(Settings['SectionList'][i], str):
-            for Section in doc_sections.getElementsByTagName("Directory"):
-                if Section.getAttribute("title") == Settings['SectionList'][i]:
-                    Settings['SectionList'][i] = int(Section.getAttribute("key"))
+        if isinstance(Settings['SectionList'][i], int):  #Skip checking name of integers (these are keys)
+            continue
+        for Section in doc_sections.getElementsByTagName("Directory"):
+            if Section.getAttribute("title") == str(Settings['SectionList'][i]):
+                Settings['SectionList'][i] = int(Section.getAttribute("key"))
 
     Settings['SectionList'].sort()
     # log("Section List Mode: Auto")
