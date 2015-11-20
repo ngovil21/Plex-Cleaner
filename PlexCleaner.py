@@ -15,8 +15,8 @@ Config = ""  # Location of a config file to load options from, can be specified 
 ## Global Settings #######################################################
 Host = ""  # IP Address of the Plex Media Server, by default 127.0.0.1 will be used
 Port = ""  # Port of the Plex Media Server, by default 32400 will be used
-SectionList = []  # Sections to clean. If empty all sections will be looked at
-IgnoreSections = []  # Sections to skip cleaning, for use when Settings['SectionList'] is not specified
+SectionList = []  # Sections to clean. If empty all sections will be looked at, the section id should be used here which is the number found be in the url on PlexWeb after /section/[ID]
+IgnoreSections = []  # Sections to skip cleaning, for use when Settings['SectionList'] is not specified, the same as SectionList, the section id should be used here
 LogFile = ""  # Location of log file to save console output
 trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
 
@@ -886,11 +886,17 @@ doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sec
 
 if (not Settings['SectionList']) and doc_sections:
     for Section in doc_sections.getElementsByTagName("Directory"):
-        if Section.getAttribute("key") not in Settings['IgnoreSections']:
+        if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in Settings['IgnoreSections']:
             Settings['SectionList'].append(Section.getAttribute("key"))
+elif doc_sections and Settings['SectionList']:
+    for i in range(0, len(Settings['SectionList'])):
+        if isinstance(Settings['SectionList'][i], str):
+            for Section in doc_sections.getElementsByTagName("Directory"):
+                if Section.getAttribute("title") == Settings['SectionList'][i]:
+                    Settings['SectionList'][i] = int(Section.getAttribute("key"))
 
-    Settings['SectionList'].sort(key=int)
-    log("Section List Mode: Auto")
+    Settings['SectionList'].sort()
+    # log("Section List Mode: Auto")
     log("Operating on sections: " + ','.join(str(x) for x in Settings['SectionList']))
     log("Skipping Sections: " + ','.join(str(x) for x in Settings['IgnoreSections']))
 
