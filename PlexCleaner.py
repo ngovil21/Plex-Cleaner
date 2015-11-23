@@ -513,24 +513,23 @@ def checkUsersWatched(users, media_id):
                 video = user_media_page.getElementsByTagName("Video")[0]
                 if video.hasAttribute('viewCount') and int(video.getAttribute('viewCount')) > 0:
                     lastViewedAt = video.getAttribute('lastViewedAt')
-                    if not lastViewedAt:
-                        if lastViewedAt == '':
-                            DaysSinceVideoLastViewed = 0
-                        else:
-                            d1 = datetime.datetime.today()
-                            d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
-                            DaysSinceVideoLastViewed = (d1 - d2).days
-                        if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last
-                            compareDay = DaysSinceVideoLastViewed
+                    if not lastViewedAt or lastViewedAt == '' or lastViewedAt == '0':
+                        DaysSinceVideoLastViewed = 0
+                    else:
+                        d1 = datetime.datetime.today()
+                        d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
+                        DaysSinceVideoLastViewed = (d1 - d2).days
+                    if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last
+                        compareDay = DaysSinceVideoLastViewed
                 else:  # Video has not been seen by this user, return -1 for unseen
                     if test:
-                        log(u + " has not seen the video: " + media_id, True)
+                        log(u + " has not seen the video: " + media_id)
                     return -1
             else:
                 print("Not Found!")
                 return -1
         else:
-            log("Do not have a token for " + u + ". Please check spelling or report error on forums.")
+            log("Do not have the token for " + u + ". Please check spelling or report error on forums.")
             return -1
     return compareDay
 
