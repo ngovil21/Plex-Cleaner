@@ -562,6 +562,7 @@ def checkMovies(doc, section):
                     m['view'] = 0
                     compareDay = 0
                 else:
+                    m['view'] = 1
                     if watchedDays > m['DaysSinceVideoAdded']:
                         compareDay = m['DaysSinceVideoAdded']
                     else:
@@ -698,6 +699,7 @@ def checkShow(showDirectory):
                         m['view'] = 0
                         compareDay = 0
                     else:
+                        m['view'] = 1
                         if watchedDays > m['DaysSinceVideoAdded']:
                             compareDay = m['DaysSinceVideoAdded']
                         else:
@@ -772,10 +774,6 @@ if args.config:
 if Config == "":
     if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
         Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
-    # elif os.path.isfile(".plexcleaner"):
-    #     Config = ".plexcleaner"
-    # elif os.path.isfile("Cleaner.conf"):
-    #     Config = "Cleaner.conf"
     elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
         Config = os.path.join(sys.path[0], "Cleaner.conf")
     elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
