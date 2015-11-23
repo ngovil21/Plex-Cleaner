@@ -562,6 +562,7 @@ def checkMovies(doc, section):
                     m['view'] = 0
                     compareDay = 0
                 else:
+                    m['view'] = 1
                     if watchedDays > m['DaysSinceVideoAdded']:
                         compareDay = m['DaysSinceVideoAdded']
                     else:
@@ -698,6 +699,7 @@ def checkShow(showDirectory):
                         m['view'] = 0
                         compareDay = 0
                     else:
+                        m['view'] = 1
                         if watchedDays > m['DaysSinceVideoAdded']:
                             compareDay = m['DaysSinceVideoAdded']
                         else:
