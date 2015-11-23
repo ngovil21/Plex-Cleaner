@@ -772,11 +772,6 @@ if Config == "":
     elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
         Config = os.path.join(sys.path[0], "Settings.cfg")
 
-if args.dump:
-    # Output settings to a json config file and exit
-    print("Saving settings to " + args.dump)
-    dumpSettings(args.dump)
-    exit()
 
 Settings = OrderedDict()
 
@@ -793,6 +788,13 @@ if Config and os.path.isfile(Config):
         dumpSettings(Config)
 else:
     Settings = LoadSettings(Settings)
+
+if args.dump:
+    # Output settings to a json config file and exit
+    print("Saving settings to " + args.dump)
+    dumpSettings(args.dump)
+    print("Settings saved. Exiting...")
+    exit()
 
 if test:
     print(json.dumps(Settings, indent=2, sort_keys=False))  # if testing print out the loaded settings in the console
