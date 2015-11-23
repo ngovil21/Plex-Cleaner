@@ -779,12 +779,6 @@ if Config == "":
     elif os.path.isfile("Cleaner.conf"):
         Config = "Cleaner.conf"
 
-if args.dump:
-    # Output settings to a json config file and exit
-    print("Saving settings to " + args.dump)
-    dumpSettings(args.dump)
-    exit()
-
 Settings = OrderedDict()
 
 if Config and os.path.isfile(Config):
@@ -800,6 +794,13 @@ if Config and os.path.isfile(Config):
         dumpSettings(Config)
 else:
     Settings = LoadSettings(Settings)
+
+if args.dump:
+    # Output settings to a json config file and exit
+    print("Saving settings to " + args.dump)
+    dumpSettings(args.dump)
+    print("Settings saved. Exiting...")
+    exit()
 
 if args.update_config:
     if Config:
