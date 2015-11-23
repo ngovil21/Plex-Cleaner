@@ -519,7 +519,7 @@ def checkUsersWatched(users, media_id):
                         d1 = datetime.datetime.today()
                         d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
                         DaysSinceVideoLastViewed = (d1 - d2).days
-                    if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last
+                    if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
                         compareDay = DaysSinceVideoLastViewed
                 else:  # Video has not been seen by this user, return -1 for unseen
                     if test:
@@ -560,6 +560,7 @@ def checkMovies(doc, section):
                     m['view'] = 0
                     compareDay = 0
                 else:
+                    m['view'] = 1
                     if watchedDays > m['DaysSinceVideoAdded']:
                         compareDay = m['DaysSinceVideoAdded']
                     else:
@@ -695,6 +696,7 @@ def checkShow(showDirectory):
                         m['view'] = 0
                         compareDay = 0
                     else:
+                        m['view'] = 1
                         if watchedDays > m['DaysSinceVideoAdded']:
                             compareDay = m['DaysSinceVideoAdded']
                         else:
