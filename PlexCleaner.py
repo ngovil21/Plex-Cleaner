@@ -7,7 +7,7 @@
 # Version 1.7 - Added options for Shared Users
 # Version 1.8 - Added Profies
 # Version 1.9 - Added options for checking watch status for multiple users in Plex Home
-# Version 1.10 - Added ability to select section by title, preparation for new config
+# Version 1.91 - Added ability to select section by title, preparation for new config
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 
@@ -750,14 +750,11 @@ def checkShow(showDirectory):
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
-parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?',
-                    const="Cleaner.conf", default=None)
-parser.add_argument("--config", "-config", "--load", "-load",
-                    help="Load settings from a configuration file and run with settings")
-parser.add_argument("--update_config", "-update_config", action="store_true",
-                    help="Update the config file with new settings from the script and exit")
+parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?', const="Cleaner.conf", default=None)
+parser.add_argument("--config", "-config", "--load", "-load", help="Load settings from a configuration file and run with settings")
+parser.add_argument("--update_config", "-update_config", action="store_true", help="Update the config file with new settings from the script and exit")
 parser.add_argument("--debug", "-debug", action="store_true", help="Run script in debug mode to log more error information")
-parser.add_argument("--update_config", "-update_config", action="store_true", help="Prompts for editing the config from the commandline")
+parser.add_argument("--config_edit", "-config_edit", action="store_true", help="Prompts for editing the config from the commandline")
 
 args = parser.parse_args()
 
