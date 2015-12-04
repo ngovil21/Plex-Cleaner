@@ -10,7 +10,6 @@
 # Version 1.91 - Added ability to select section by title, preparation for new config
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
-
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
 
 ## Global Settings #######################################################
@@ -487,6 +486,10 @@ def getMediaInfo(VideoNode):
         d1 = datetime.datetime.today()
         da2 = datetime.datetime.fromtimestamp(float(addedAt))
         DaysSinceVideoAdded = (d1 - da2).days
+    if VideoNode.hasAttribute('viewOffset') and VideoNode.hasAttribute('duration'):
+        progress = int(VideoNode.getAttribute('viewOffset')) * 100 / int(VideoNode.getAttribute('duration'))
+    else:
+        progress = 0
     ################################################################
     MediaNode = VideoNode.getElementsByTagName("Media")
     media_id = VideoNode.getAttribute("ratingKey")
@@ -499,7 +502,7 @@ def getMediaInfo(VideoNode):
             else:
                 file = urllib2.unquote(file)
             return {'view': view, 'DaysSinceVideoAdded': DaysSinceVideoAdded,
-                    'DaysSinceVideoLastViewed': DaysSinceVideoLastViewed, 'file': file, 'media_id': media_id}
+                    'DaysSinceVideoLastViewed': DaysSinceVideoLastViewed, 'file': file, 'media_id': media_id, 'progress': progress}
 
 
 def checkUsersWatched(users, media_id, progressAsWatched):
@@ -577,7 +580,7 @@ def checkMovies(doc, section):
                 compareDay = m['DaysSinceVideoLastViewed']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
                 title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
-            checkedWatched = (m['view'] > 0)
+            checkedWatched = (m['view'] > 0 or (0 < movie_settings['progressAsWatched'] < m['progress']))
         else:
             compareDay = m['DaysSinceVideoAdded']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
@@ -715,7 +718,7 @@ def checkShow(showDirectory):
                 compareDay = m['DaysSinceVideoAdded']
             # key = '%sx%s' % (season_num, episode_num)  # store episode with key based on season number and episode number for sorting
             episodes.append({'season': season_num, 'episode': episode_num, 'title': title, 'view': m['view'],
-                             'compareDay': compareDay, 'file': m['file'], 'media_id': m['media_id']})
+                             'compareDay': compareDay, 'file': m['file'], 'media_id': m['media_id'], 'progress': m['progress']})
             FileCount += 1
     count = 0
     changes = 0
@@ -725,7 +728,7 @@ def checkShow(showDirectory):
         if show_settings['watched']:
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Last Viewed: %d | On Deck: %s" % (
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
-            checkWatched = (ep['view'] > 0)
+            checkWatched = (ep['view'] > 0 or (0 < show_settings['progressAsWatched'] < ep['progress']))
         else:
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Added: %d | On Deck: %s" % (
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
