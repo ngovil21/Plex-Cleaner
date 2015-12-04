@@ -286,7 +286,7 @@ def LoadSettings(opts):
     s['default_maxDays'] = opts.get('default_maxDays', default_maxDays)
     s['default_action'] = opts.get('default_action', default_action)
     s['default_watched'] = opts.get('default_watched', default_watched)
-    s['default_progressAsWatched'] = opts.get('default_progressAsWatched', default_watched)
+    s['default_progressAsWatched'] = opts.get('default_progressAsWatched', default_progressAsWatched)
     s['default_location'] = opts.get('default_location', default_location)
     s['default_onDeck'] = opts.get('default_onDeck', default_onDeck)
     s['default_homeUsers'] = opts.get('default_homeUsers', default_homeUsers)
@@ -354,6 +354,7 @@ def performAction(file, action, media_id=0, location=""):
     global DeleteCount, MoveCount, CopyCount, FlaggedCount
 
     file = getLocalPath(file)
+    action = action.lower()
     if action.startswith('k'):  # Keep file
         return False
     if test or action.startswith('f'):  # Test file or Flag file
