@@ -147,7 +147,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.9
+CONFIG_VERSION = 1.91
 client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
