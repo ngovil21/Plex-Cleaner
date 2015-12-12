@@ -8,6 +8,8 @@
   "Token": "",
   "Username": "",
   "Password": "",
+  "Shared": false,
+  "DeviceName": "",
   "RemoteMount": "",
   "LocalMount": "",
   "plex_delete": false,
@@ -19,39 +21,51 @@
   "default_maxDays": 60,
   "default_action": "flag",
   "default_watched": true,
+  "default_progressAsWatched": 0,
   "default_location": "",
   "default_onDeck": true,
+  "default_homeUsers": "",
   "ShowPreferences": {
     "Show 1": {
       "maxDays": 30,
-      "minDays": 10,
       "action": "delete",
+      "onDeck": true,
+      "minDays": 10,
       "location": "/path/to/folder",
       "watched": true,
-      "onDeck": true,
       "episodes": 3
     },
     "Show 2": {
       "maxDays": 30,
-      "minDays": 10,
       "action": "delete",
+      "onDeck": false,
+      "minDays": 10,
       "location": "/path/to/folder",
       "watched": false,
-      "onDeck": false,
       "episodes": 0
     },
     "Show 3": {
       "action": "keep"
-    },
-    "Show Preferences": {}
+    }
   },
   "MoviePreferences": {
-    "Movie Preferences": "",
     "action": "flag",
     "location": "",
     "minDays": 0,
     "onDeck": true,
     "watched": true
   },
-  "Version": 1.5
+  "Profiles": {
+    "Profile 1": {
+      "episodes": 3,
+      "action": "delete",
+      "onDeck": true,
+      "minDays": 10,
+      "location": "/path/to/folder",
+      "watched": true,
+      "maxDays": 30,
+      "homeUsers": ""
+    }
+  },
+  "Version": 1.91
 }
