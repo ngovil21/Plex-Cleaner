@@ -737,7 +737,9 @@ def checkShow(showDirectory):
         if not (not ((len(episodes) - k) > show_settings['episodes']) and not (ep['compareDay'] > show_settings['maxDays'] > 0)):  # if we have more episodes, then check if we can delete the file
             checkDeck = False
             if show_settings['onDeck']:
-                checkDeck = onDeck
+                checkDeck = onDeck or (k + 1 < len(episodes) and CheckOnDeck(episodes[k + 1]['media_id']))
+                if debug_mode and checkDeck:
+                    print("File is on deck, not deleting")
             check = (not show_settings['action'].startswith('k')) and checkWatched and (
                 ep['compareDay'] >= show_settings['minDays']) and (not checkDeck)
             if check:
@@ -828,7 +830,7 @@ if Settings['Port'] == "":
     Settings['Port'] = "32400"
 
 if test:
-    print(Settings)
+    print(json.dumps(Settings,indent=2))
 
 LogToFile = False
 if not Settings['LogFile'] == "":
