@@ -19,6 +19,7 @@
   "default_maxDays": 60,
   "default_action": "flag",
   "default_watched": true,
+  "default_progressAsWatched": 0,
   "default_location": "",
   "default_onDeck": true,
   "ShowPreferences": {
