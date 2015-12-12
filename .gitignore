@@ -107,3 +107,6 @@ $RECYCLE.BIN/
 
 Cleaner.conf
 test.py
+Config.py
+*.txt
+rson.conf
