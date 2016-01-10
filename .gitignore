@@ -106,6 +106,7 @@ $RECYCLE.BIN/
 *.log
 
 Cleaner.conf
+/Cleaner.conf.bak
 test.py
 *.txt
 rson.conf

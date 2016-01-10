@@ -1,71 +1,64 @@
-{
-  "Host": "",
-  "Port": "",
-  "SectionList": [],
-  "IgnoreSections": [],
-  "LogFile": "",
-  "trigger_rescan": false,
-  "Token": "",
-  "Username": "",
-  "Password": "",
-  "Shared": false,
-  "DeviceName": "",
-  "RemoteMount": "",
-  "LocalMount": "",
-  "plex_delete": false,
-  "similar_files": true,
-  "cleanup_movie_folders": false,
-  "minimum_folder_size": 30,
-  "default_episodes": 0,
-  "default_minDays": 0,
-  "default_maxDays": 60,
-  "default_action": "flag",
-  "default_watched": true,
-  "default_progressAsWatched": 0,
-  "default_location": "",
-  "default_onDeck": true,
-  "default_homeUsers": "",
-  "ShowPreferences": {
-    "Show 1": {
-      "maxDays": 30,
-      "action": "delete",
-      "onDeck": true,
-      "minDays": 10,
-      "location": "/path/to/folder",
-      "watched": true,
-      "episodes": 3
-    },
-    "Show 2": {
-      "maxDays": 30,
-      "action": "delete",
-      "onDeck": false,
-      "minDays": 10,
-      "location": "/path/to/folder",
-      "watched": false,
-      "episodes": 0
-    },
-    "Show 3": {
-      "action": "keep"
-    }
-  },
-  "MoviePreferences": {
-    "action": "flag",
-    "location": "",
-    "minDays": 0,
-    "onDeck": true,
-    "watched": true
-  },
-  "Profiles": {
-    "Profile 1": {
-      "episodes": 3,
-      "action": "delete",
-      "onDeck": true,
-      "minDays": 10,
-      "location": "/path/to/folder",
-      "watched": true,
-      "maxDays": 30,
-      "homeUsers": ""
-    }
-  },
-  "Version": 1.91
-}
+Host = ""
+Port = ""
+SectionList = []
+IgnoreSections = []
+LogFile = ""
+trigger_rescan = False
+Token = ""
+Username = ""
+Password = ""
+Shared = False
+DeviceName = ""
+RemoteMount = ""
+LocalMount = ""
+plex_delete = False
+similar_files = True
+cleanup_movie_folders = False
+minimum_folder_size = 30
+default_episodes = 0
+default_minDays = 0
+default_maxDays = 60
+default_action = "flag"
+default_watched = True
+default_progressAsWatched = 0
+default_location = ""
+default_onDeck = True
+default_homeUsers = ""
+ShowPreferences:
+    Show 1:
+        maxDays = 30
+        action = "delete"
+        onDeck = True
+        minDays = 10
+        location = "/path/to/folder"
+        watched = True
+        episodes = 3
+    Show 2:
+        maxDays = 30
+        action = "delete"
+        onDeck = False
+        minDays = 10
+        location = "/path/to/folder"
+        watched = False
+        episodes = 0
+    Show 3:
+        action = "keep"
+MoviePreferences:
+#    "action" = "flag"
+#    "location" = ""
+#    "minDays" = 0
+#    "onDeck" = true
+#    "watched" = true
+Profiles:
+    Profile 1:
+        episodes = 3
+        action = "delete"
+        onDeck = True
+        minDays = 10
+        location = "/path/to/folder"
+        watched = True
+        maxDays = 30
+        homeUsers = ""
+Version = 2.0
+
+

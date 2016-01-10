@@ -147,9 +147,9 @@ try:
 except:
     import ConfigParser
 
-import Config
+import Config as Configurator
 
-CONFIG_VERSION = 1.91
+CONFIG_VERSION = 2.0
 client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
@@ -305,12 +305,13 @@ def dumpSettings(output):
         Settings['ShowPreferences'].pop('End Preferences')
     if 'Movie Preferences' in Settings['MoviePreferences']:
         Settings['MoviePreferences'].pop('Movie Preferences')
-    Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
-    Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
-    Settings['Profiles'] = OrderedDict(sorted(Settings['Profiles'].items()))
+    #sort dictionaries, should already be sorted in LoadSettings
+    # Settings['ShowPreferences'] = OrderedDict(sorted(Settings['ShowPreferences'].items()))
+    # Settings['MoviePreferences'] = OrderedDict(sorted(Settings['MoviePreferences'].items()))
+    # Settings['Profiles'] = OrderedDict(sorted(Settings['Profiles'].items()))
+    # Use current Version (probably unnecessary)
     Settings['Version'] = CONFIG_VERSION
-    with open(output, 'w') as outfile:
-        json.dump(Settings, outfile, indent=2)
+    Configurator.dump(Settings, output, indent=2)
 
 
 def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None):
@@ -769,209 +770,211 @@ def checkShow(showDirectory):
 
 ## Main Script ############################################
 
-# parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
-parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?', const="Cleaner.conf", default=None)
-parser.add_argument("--config", "-config", "--load", "-load", help="Load settings from a configuration file and run with settings")
-parser.add_argument("--update_config", "-update_config", action="store_true", help="Update the config file with new settings from the script and exit")
-parser.add_argument("--debug", "-debug", action="store_true", help="Run script in debug mode to log more error information")
-parser.add_argument("--config_edit", "-config_edit", action="store_true", help="Prompts for editing the config from the commandline")
+if __name__ == "__main__":
 
-args = parser.parse_args()
+    # parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
+    parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?', const="Cleaner.conf", default=None)
+    parser.add_argument("--config", "-config", "--load", "-load", help="Load settings from a configuration file and run with settings")
+    parser.add_argument("--update_config", "-update_config", action="store_true", help="Update the config file with new settings from the script and exit")
+    parser.add_argument("--debug", "-debug", action="store_true", help="Run script in debug mode to log more error information")
+    parser.add_argument("--config_edit", "-config_edit", action="store_true", help="Prompts for editing the config from the commandline")
 
-test = args.test
+    args = parser.parse_args()
 
-debug_mode = args.debug
+    test = args.test
 
-if args.config:
-    Config = args.config
-# If no config file is provided, check if there is a config file in first the user directory, or the current directory.
-if Config == "":
-    if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
-        Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
-    elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
-        Config = os.path.join(sys.path[0], "Cleaner.conf")
-    elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
-        Config = os.path.join(sys.path[0], "Settings.cfg")
-    elif os.path.isfile(".plexcleaner"):
-        Config = ".plexcleaner"
-    elif os.path.isfile("Cleaner.conf"):
-        Config = "Cleaner.conf"
+    debug_mode = args.debug
+
+    if args.config:
+        Config = args.config
+    # If no config file is provided, check if there is a config file in first the user directory, or the current directory.
+    if Config == "":
+        if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
+            Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
+        elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
+            Config = os.path.join(sys.path[0], "Cleaner.conf")
+        elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
+            Config = os.path.join(sys.path[0], "Settings.cfg")
+        elif os.path.isfile(".plexcleaner"):
+            Config = ".plexcleaner"
+        elif os.path.isfile("Cleaner.conf"):
+            Config = "Cleaner.conf"
 
 
-Settings = OrderedDict()
+    Settings = OrderedDict()
 
-if Config and os.path.isfile(Config):
-    print("Loading config file: " + Config)
-    with open(Config, 'r') as infile:
-        opt_string = infile.read()              # read in file
-        if opt_string.startswith("{"):          # This is a json file, use json parsing, will be deprecated in the future
-            opt_string = opt_string.replace('\n', '')  # remove line breaks
-            # Escape odd number of backslashes (Windows paths are a problem)
-            opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
-            options = json.loads(opt_string)
-        else:                                   # Otherwise assumes it's a newer config file format
-            options = Config.loads(opt_string, True)
-        Settings = LoadSettings(options)
-    if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
-        print("Old version of config file! Updating...")
-        dumpSettings(Config)
-else:
-    Settings = LoadSettings(Settings)
-
-if args.dump:
-    # Output settings to a json config file and exit
-    print("Saving settings to " + args.dump)
-    dumpSettings(args.dump)
-    print("Settings saved. Exiting...")
-    exit()
-
-if args.update_config:
-    if Config:
-        # resp = get_input("Edit Settings in console? (y/n)")
-        # if resp.lower().startswith("y"):
-        #     while True:
-        print("Updating Config file with current settings")
-        dumpSettings(Config)
-        exit()
+    if Config and os.path.isfile(Config):
+        print("Loading config file: " + Config)
+        with open(Config, 'r') as infile:
+            opt_string = infile.read()              # read in file
+            if opt_string.startswith("{"):          # This is a json file, use json parsing, will be deprecated in the future
+                opt_string = opt_string.replace('\n', '')  # remove line breaks
+                # Escape odd number of backslashes (Windows paths are a problem)
+                opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
+                options = json.loads(opt_string)
+            else:                                   # Otherwise assumes it's a newer config file format
+                options = Configurator.loads(opt_string, True)
+            Settings = LoadSettings(options)
+        if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
+            print("Old version of config file! Updating...")
+            dumpSettings(Config)
     else:
-        print("No config file found! Exiting!")
+        Settings = LoadSettings(Settings)
+
+    if args.dump:
+        # Output settings to a json config file and exit
+        print("Saving settings to " + args.dump)
+        dumpSettings(args.dump)
+        print("Settings saved. Exiting...")
         exit()
 
-if Settings['Host'] == "":
-    Settings['Host'] = "127.0.0.1"
-if Settings['Port'] == "":
-    Settings['Port'] = "32400"
+    if args.update_config:
+        if Config:
+            # resp = get_input("Edit Settings in console? (y/n)")
+            # if resp.lower().startswith("y"):
+            #     while True:
+            print("Updating Config file with current settings")
+            dumpSettings(Config)
+            exit()
+        else:
+            print("No config file found! Exiting!")
+            exit()
 
-if test:
-    print(json.dumps(Settings,indent=2))
+    if Settings['Host'] == "":
+        Settings['Host'] = "127.0.0.1"
+    if Settings['Port'] == "":
+        Settings['Port'] = "32400"
 
-LogToFile = False
-if not Settings['LogFile'] == "":
-    LogToFile = True
-    logging.basicConfig(filename=Settings['LogFile'], filemode='w', level=logging.DEBUG)
-    logging.captureWarnings(True)
+    if test:
+        print(Configurator.dumps(Settings, indent=2))
 
-if Token == "":
-    if not Settings['Username'] == "":
-        Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
-        if Settings['Token'] == "":
-            log("Error getting token, trying without...", True)
-        elif test:
-            log("Token: " + Settings['Token'], True)
-            login = True
+    LogToFile = False
+    if not Settings['LogFile'] == "":
+        LogToFile = True
+        logging.basicConfig(filename=Settings['LogFile'], filemode='w', level=logging.DEBUG)
+        logging.captureWarnings(True)
 
-server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
-if server_check:
-    media_container = server_check.getElementsByTagName("MediaContainer")[0]
-    if not Settings['DeviceName']:
-        Settings['DeviceName'] = media_container.getAttribute("friendlyName")
-    if not machine_client_identifier:
-        machine_client_identifier = media_container.getAttribute("machineIdentifier")
+    if Token == "":
+        if not Settings['Username'] == "":
+            Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
+            if Settings['Token'] == "":
+                log("Error getting token, trying without...", True)
+            elif test:
+                log("Token: " + Settings['Token'], True)
+                login = True
 
-if Settings['Shared'] and Settings['Token']:
-    accessToken = getAccessToken(Settings['Token'])
-    if accessToken:
-        Settings['Token'] = accessToken
-        if test:
-            log("Access Token: " + Settings['Token'], True)
-    else:
-        log("Access Token not found or not a shared account")
+    server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
+    if server_check:
+        media_container = server_check.getElementsByTagName("MediaContainer")[0]
+        if not Settings['DeviceName']:
+            Settings['DeviceName'] = media_container.getAttribute("friendlyName")
+        if not machine_client_identifier:
+            machine_client_identifier = media_container.getAttribute("machineIdentifier")
 
-if not Settings['Host'].startswith("http"):
-    Settings['Host'] = "http://" + Settings['Host']
+    if Settings['Shared'] and Settings['Token']:
+        accessToken = getAccessToken(Settings['Token'])
+        if accessToken:
+            Settings['Token'] = accessToken
+            if test:
+                log("Access Token: " + Settings['Token'], True)
+        else:
+            log("Access Token not found or not a shared account")
 
-default_settings = {'episodes': Settings['default_episodes'],
-                    'minDays': Settings['default_minDays'],
-                    'maxDays': Settings['default_maxDays'],
-                    'action': Settings['default_action'],
-                    'watched': Settings['default_watched'],
-                    'progressAsWatched': Settings['default_progressAsWatched'],
-                    'location': Settings['default_location'],
-                    'onDeck': Settings['default_onDeck'],
-                    'homeUsers': Settings['default_homeUsers']
-                    }
+    if not Settings['Host'].startswith("http"):
+        Settings['Host'] = "http://" + Settings['Host']
 
-log("----------------------------------------------------------------------------")
-log("                           Detected Settings")
-log("----------------------------------------------------------------------------")
-log("Host: " + Settings['Host'])
-log("Port: " + Settings['Port'])
+    default_settings = {'episodes': Settings['default_episodes'],
+                        'minDays': Settings['default_minDays'],
+                        'maxDays': Settings['default_maxDays'],
+                        'action': Settings['default_action'],
+                        'watched': Settings['default_watched'],
+                        'progressAsWatched': Settings['default_progressAsWatched'],
+                        'location': Settings['default_location'],
+                        'onDeck': Settings['default_onDeck'],
+                        'homeUsers': Settings['default_homeUsers']
+                        }
 
-FileCount = 0
-DeleteCount = 0
-MoveCount = 0
-CopyCount = 0
-FlaggedCount = 0
-OnDeckCount = 0
-KeptCount = 0
+    log("----------------------------------------------------------------------------")
+    log("                           Detected Settings")
+    log("----------------------------------------------------------------------------")
+    log("Host: " + Settings['Host'])
+    log("Port: " + Settings['Port'])
 
-doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
+    FileCount = 0
+    DeleteCount = 0
+    MoveCount = 0
+    CopyCount = 0
+    FlaggedCount = 0
+    OnDeckCount = 0
+    KeptCount = 0
 
-if (not Settings['SectionList']) and doc_sections:
-    for Section in doc_sections.getElementsByTagName("Directory"):
-        if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in Settings['IgnoreSections']:
-            Settings['SectionList'].append(Section.getAttribute("key"))
-elif doc_sections and Settings['SectionList']:  # Replace section names with the proper id(/key)
-    for i in range(0, len(Settings['SectionList'])):
-        if isinstance(Settings['SectionList'][i], int):  # Skip checking name of integers (these are keys)
-            continue
+    doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
+
+    if (not Settings['SectionList']) and doc_sections:
         for Section in doc_sections.getElementsByTagName("Directory"):
-            if Section.getAttribute("title") == str(Settings['SectionList'][i]):
-                Settings['SectionList'][i] = int(Section.getAttribute("key"))
+            if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in Settings['IgnoreSections']:
+                Settings['SectionList'].append(Section.getAttribute("key"))
+    elif doc_sections and Settings['SectionList']:  # Replace section names with the proper id(/key)
+        for i in range(0, len(Settings['SectionList'])):
+            if isinstance(Settings['SectionList'][i], int):  # Skip checking name of integers (these are keys)
+                continue
+            for Section in doc_sections.getElementsByTagName("Directory"):
+                if Section.getAttribute("title") == str(Settings['SectionList'][i]):
+                    Settings['SectionList'][i] = int(Section.getAttribute("key"))
 
-    Settings['SectionList'].sort()
-    # log("Section List Mode: Auto")
-    log("Operating on sections: " + ','.join(str(x) for x in Settings['SectionList']))
-    log("Skipping Sections: " + ','.join(str(x) for x in Settings['IgnoreSections']))
+        Settings['SectionList'].sort()
+        # log("Section List Mode: Auto")
+        log("Operating on sections: " + ','.join(str(x) for x in Settings['SectionList']))
+        log("Skipping Sections: " + ','.join(str(x) for x in Settings['IgnoreSections']))
 
-else:
-    log("Section List Mode: User-defined")
-    log("Operating on user-defined sections: " + ','.join(str(x) for x in Settings['SectionList']))
+    else:
+        log("Section List Mode: User-defined")
+        log("Operating on user-defined sections: " + ','.join(str(x) for x in Settings['SectionList']))
 
-RescannedSections = []
+    RescannedSections = []
 
-for Section in Settings['SectionList']:
-    Section = str(Section)
+    for Section in Settings['SectionList']:
+        Section = str(Section)
 
-    doc = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/all")
-    deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
+        doc = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/all")
+        deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
 
-    if not doc:
-        log("Failed to load Section %s. Skipping..." % Section)
-        continue
-    SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
+        if not doc:
+            log("Failed to load Section %s. Skipping..." % Section)
+            continue
+        SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
+        log("")
+        log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
+
+        group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
+        changed = 0
+        if group == "movie":
+            changed = checkMovies(doc, Section)
+        elif group == "show":
+            for DirectoryNode in doc.getElementsByTagName("Directory"):
+                changed += checkShow(DirectoryNode)
+        if changed > 0 and Settings['trigger_rescan']:
+            log("Triggering rescan...")
+            if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
+                       parseXML=False):
+                RescannedSections.append(Section)
+
     log("")
-    log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
-
-    group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
-    changed = 0
-    if group == "movie":
-        changed = checkMovies(doc, Section)
-    elif group == "show":
-        for DirectoryNode in doc.getElementsByTagName("Directory"):
-            changed += checkShow(DirectoryNode)
-    if changed > 0 and Settings['trigger_rescan']:
-        log("Triggering rescan...")
-        if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
-                   parseXML=False):
-            RescannedSections.append(Section)
-
-log("")
-log("----------------------------------------------------------------------------")
-log("----------------------------------------------------------------------------")
-log("                Summary -- Script Completed Successfully")
-log("----------------------------------------------------------------------------")
-log("")
-log("  Total File Count      " + str(FileCount))
-log("  Kept Show Files       " + str(KeptCount))
-log("  On Deck Files         " + str(OnDeckCount))
-log("  Deleted Files         " + str(DeleteCount))
-log("  Moved Files           " + str(MoveCount))
-log("  Copied Files          " + str(CopyCount))
-log("  Flagged Files         " + str(FlaggedCount))
-log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
-log("")
-log("----------------------------------------------------------------------------")
-log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
+    log("                Summary -- Script Completed Successfully")
+    log("----------------------------------------------------------------------------")
+    log("")
+    log("  Total File Count      " + str(FileCount))
+    log("  Kept Show Files       " + str(KeptCount))
+    log("  On Deck Files         " + str(OnDeckCount))
+    log("  Deleted Files         " + str(DeleteCount))
+    log("  Moved Files           " + str(MoveCount))
+    log("  Copied Files          " + str(CopyCount))
+    log("  Flagged Files         " + str(FlaggedCount))
+    log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
+    log("")
+    log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
