@@ -213,8 +213,8 @@ def getToken(user, passw):
 
 
 # For Shared users, get the Access Token for the server, get the https url as well
-def getAccessToken(Token):
-    resources = getURLX("https://plex.tv/api/resources?includeHttps=1", token=Token)
+def getAccessToken(token):
+    resources = getURLX("https://plex.tv/api/resources?includeHttps=1", token=token)
     if not resources:
         return ""
     devices = resources.getElementsByTagName("Device")
@@ -247,8 +247,8 @@ def getPlexHomeUserTokens():
         # print(homeUsers.toprettyxml())
         user_tokens = {}
         for user in homeUsers.getElementsByTagName("User"):
-            id = user.getAttribute("id")
-            switch_page = getURLX("https://plex.tv/api/home/users/" + id + "/switch", data=b'')  # Empty byte data to send a 'POST'
+            user_id = user.getAttribute("id")
+            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch", data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
                 username = user_element.getAttribute("title").lower()
