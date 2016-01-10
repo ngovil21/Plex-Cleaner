@@ -111,11 +111,11 @@ ShowPreferences = {
 # Movie specific settings, settings you would like to apply to movie sections only. These settings will override the default
 # settings set above. Change the default value here or in the config file. Use this for Movie Libraries.
 MoviePreferences = {
-    'watched': default_watched,  # Delete only watched episodes
-    'minDays': default_minDays,  # Minimum number of days to keep
-    'action': default_action,  # Action to perform on movie files (delete/move/copy)
-    'location': default_location,  # Location to keep movie files
-    'onDeck': default_onDeck  # Do not delete move if on deck
+    # 'watched': default_watched,  # Delete only watched episodes
+    # 'minDays': default_minDays,  # Minimum number of days to keep
+    # 'action': default_action,  # Action to perform on movie files (delete/move/copy)
+    # 'location': default_location,  # Location to keep movie files
+    # 'onDeck': default_onDeck  # Do not delete move if on deck
 }
 
 # Profiles allow for customized settings based on Plex Collections. This allows managing of common settings using the Plex Web interface.
