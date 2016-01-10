@@ -111,11 +111,11 @@ ShowPreferences = {
 # Movie specific settings, settings you would like to apply to movie sections only. These settings will override the default
 # settings set above. Change the default value here or in the config file. Use this for Movie Libraries.
 MoviePreferences = {
-    'watched': default_watched,  # Delete only watched episodes
-    'minDays': default_minDays,  # Minimum number of days to keep
-    'action': default_action,  # Action to perform on movie files (delete/move/copy)
-    'location': default_location,  # Location to keep movie files
-    'onDeck': default_onDeck  # Do not delete move if on deck
+#    'watched': default_watched,  # Delete only watched episodes
+#    'minDays': default_minDays,  # Minimum number of days to keep
+#    'action': default_action,  # Action to perform on movie files (delete/move/copy)
+#    'location': default_location,  # Location to keep movie files
+#    'onDeck': default_onDeck  # Do not delete/move if on deck
 }
 
 # Profiles allow for customized settings based on Plex Collections. This allows managing of common settings using the Plex Web interface.
@@ -550,16 +550,24 @@ def checkMovies(doc, section):
     global KeptCount
 
     changes = 0
-    movie_settings = default_settings.copy()
-    movie_settings.update(Settings['MoviePreferences'])
-    check_users = []
-    if movie_settings['homeUsers']:
-        check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
-        for i in range(0, len(check_users)):  # Remove extra spaces and commas
-            check_users[i] = check_users[i].strip(", ")
     for VideoNode in doc.getElementsByTagName("Video"):
+        movie_settings = default_settings.copy()
+        movie_settings.update(Settings['MoviePreferences'])
         title = VideoNode.getAttribute("title")
         movie_id = VideoNode.getAttribute("ratingKey")
+        movie_metadata = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + movie_id)
+        collections = movie_metadata.getElementsByTagName("Collection")
+        for collection in collections:
+            collection_tag = collection.getAttribute('tag')
+            if collection_tag and collection_tag in Settings['Profiles']:
+                movie_settings.update(Settings['Profiles'][collection_tag])
+                print(movie_settings)
+                print("Using profile: " + collection_tag)
+        check_users = []
+        if movie_settings['homeUsers']:
+            check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
+            for i in range(0, len(check_users)):  # Remove extra spaces and commas
+                check_users[i] = check_users[i].strip(", ")
         m = getMediaInfo(VideoNode)
         onDeck = CheckOnDeck(movie_id)
         if movie_settings['watched']:
@@ -788,6 +796,7 @@ if Config == "":
         Config = ".plexcleaner"
     elif os.path.isfile("Cleaner.conf"):
         Config = "Cleaner.conf"
+
 
 Settings = OrderedDict()
 
