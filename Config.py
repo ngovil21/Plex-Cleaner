@@ -4,32 +4,33 @@ from collections import OrderedDict
 
 
 # Recursive method to try and get object types from a string value
+# Parses for lists, boolean, int, float, strings
 def parseobject(s):
     s = s.strip()
-    if re.match('".*"', s):
+    if re.match('".*"', s):         # If surrounded by quotes, return the string without quotes
         return s[1:-1]
     if s.startswith('[') and s.endswith(']'):  # Handle lists
         l = []
-        for v in s[1:-1].split(","):
-            if v == "":
+        for v in s[1:-1].split(","):            # parse objects in between [] separated by commas
+            if v == "":                         # if empty object, skip
                 continue
-            l.append(parseobject(v))
+            l.append(parseobject(v))            #parse for the type of object and add to list
         return l
-    elif s.lower() == 'true':
+    elif s.lower() == 'true':                   #if the string is 'true' assume boolean true, string "true" can be handled with "" above
         return True
-    elif s.lower() == 'false':
+    elif s.lower() == 'false':                  #if the string is 'false' assume boolean false
         return False
-    elif s.isdigit():
-        if s.count(".") == 0:
+    elif s.isdigit():                           #Parse numerical values
+        if s.count(".") == 0:                   # if there are no decimals, return int
             return int(s)
-        elif s.count(".") == 1:
+        elif s.count(".") == 1:                 # if there is one decimal, return float
             return float(s)
-        else:
+        else:                                   # if there are more than one decimal, return a string (used for versioning
             return s
-    else:
+    else:                                       # if none of the above return a string
         return s
 
-
+# Returns the indent of the current line
 def getindent(s):
     return len(s) - len(s.lstrip())
 
@@ -38,43 +39,44 @@ def getindent(s):
 # Returns a dict with key:value pairs
 # ordered will use an OrderedDict, else a built-in dict will be used
 def loads(cstring, ordered=False):
-    def parselines(lines):
+
+    def parselines(lines):                         # method to parse multiple lines, used recursively to create a dictionary
         if ordered:
-            d = OrderedDict({})
+            d = OrderedDict({})                    # if ordered set to true, use an ordered dictionary
         else:
             d = {}
         i = 0
-        while i < len(lines):
-            line = lines[i]
-            indent = getindent(line)
-            if "#" in line:
+        while i < len(lines):                      # iterate through lines
+            line = lines[i]                        # get the current line
+            indent = getindent(line)               # get the indent of the current line, count spaces/tabs
+            if "#" in line:                        # if # is in the line, remove everything after it; for commenting
                 line = re.sub('#.*', '', line)
-            spl = line.split("=", 1)
-            key = spl[0].strip()
-            if key.endswith(":"):  # remove end colon off keys that are used for dictionaries, but not required as of now
+            spl = line.split("=", 1)               # split the line at '=', denotes key/value pairs (split only the first one)
+            key = spl[0].strip()                   #key will be he first element
+            if key.endswith(":"):  # remove end colon off keys, used stylistically for dictionaries, but not currently required
                 key = key[:-1]
-            if key == "":
+            if key == "":                          # if the key is empty, then we have an empty line, go to the next line
                 i += 1
                 continue
-            if len(spl) > 1 and not spl[1].strip() == "":
-                d[key] = parseobject(spl[1])
-                i += 1
+            if len(spl) > 1 and not spl[1].strip() == "":   # if there is more than one element, we have a key/value pair
+                d[key] = parseobject(spl[1])                # parse the value object and place in dictionary
+                i += 1                                      # go to the next line
                 continue
-            else:  # assume sub-dictionary
+            else:  # assume sub-dictionary                  # there was no value, we are going to process a subdictionary
                 # j = i + 1
                 i += 1
                 dlines = []
-                while i < len(lines) and getindent(lines[i]) > indent:
+                while i < len(lines) and getindent(lines[i]) > indent:          # get all lines that have are indented more to create a subdictioanry
                     dlines.append(lines[i])
                     i += 1
-                d[key] = parselines(dlines)
-                i -= 1
-            i += 1
-        return d
+                d[key] = parselines(dlines)                                     # parse the subdictionary lines and place it as the value to the current key
+                i -= 1                                                          # loop went one too far, so backtrack one
+            i += 1                                                              # go to the next line
+        return d                                                                # return the dictionary
 
-    cstring = cstring.expandtabs(4)
+    cstring = cstring.expandtabs(4)                         # expand tabs to be 4 spaces
     # cstring.replace(chr(9), "    ")
-    return parselines(cstring.splitlines())
+    return parselines(cstring.splitlines())                 # recursively parse the lines, split by line break
 
 
 # Opens a file and parses it with loads
@@ -91,12 +93,12 @@ def load(file, ordered=False):
 def dumps(data, sorted=False, indent=4):
     st = ""
     for key in data:
-        if isinstance(data[key], dict):
+        if isinstance(data[key], dict):                                  # if data is a dict, then print key with a colon after (not necessary, done for style purposes)
             st += key + ":" + "\n"
-            temp = dumps(data[key], sorted, indent).split("\n")
-            if not isinstance(temp, list):
+            temp = dumps(data[key], sorted, indent).split("\n")          # recursively dump the subdictionary and split the lines
+            if not isinstance(temp, list):                               # if there is one element (string), then add the one line with indent
                 st = " " * indent + temp + "\n"
-            else:
+            else:                                                        # if there is more than one element, go through the elements adding
                 for el in temp:
                     st += " " * indent + el + "\n"
         else:
@@ -108,15 +110,3 @@ def dumps(data, sorted=False, indent=4):
 def dump(data, file, sorted=False, indent=4):
     with open(file, 'w') as outfile:
         outfile.write(dumps(data, sorted, indent))
-
-
-        # with open("C:\Users\Nikhil\Documents\GitHub\Plex-Cleaner\Cleaner.conf.default", 'r') as infile:
-        # opt_string = infile.read().replace('\n', '')  # read in file removing breaks
-        # Escape odd number of backslashes (Windows paths are a problem)
-        # opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
-        # options = json.loads(opt_string)
-        # options =load(infile, True)
-
-
-options = load("C:\Users\Nikhil\Documents\GitHub\Plex-Cleaner\\notepad_test.txt", True)
-print(dumps(options))

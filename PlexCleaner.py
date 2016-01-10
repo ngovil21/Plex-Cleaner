@@ -147,6 +147,8 @@ try:
 except:
     import ConfigParser
 
+import Config
+
 CONFIG_VERSION = 1.91
 client_id = uuid.uuid1()
 home_user_tokens = {}
@@ -803,10 +805,14 @@ Settings = OrderedDict()
 if Config and os.path.isfile(Config):
     print("Loading config file: " + Config)
     with open(Config, 'r') as infile:
-        opt_string = infile.read().replace('\n', '')  # read in file removing breaks
-        # Escape odd number of backslashes (Windows paths are a problem)
-        opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
-        options = json.loads(opt_string)
+        opt_string = infile.read()              # read in file
+        if opt_string.startswith("{"):          # This is a json file, use json parsing, will be deprecated in the future
+            opt_string = opt_string.replace('\n', '')  # remove line breaks
+            # Escape odd number of backslashes (Windows paths are a problem)
+            opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
+            options = json.loads(opt_string)
+        else:                                   # Otherwise assumes it's a newer config file format
+            options = Config.loads(opt_string, True)
         Settings = LoadSettings(options)
     if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
         print("Old version of config file! Updating...")
