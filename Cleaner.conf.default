@@ -22,7 +22,7 @@ default_action = "flag"
 default_watched = True
 default_progressAsWatched = 0
 default_location = ""
-default_onDeck = True
+default_onDeck = False
 default_homeUsers = ""
 ShowPreferences:
     Show 1:
