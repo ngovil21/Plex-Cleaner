@@ -111,11 +111,11 @@ ShowPreferences = {
 # Movie specific settings, settings you would like to apply to movie sections only. These settings will override the default
 # settings set above. Change the default value here or in the config file. Use this for Movie Libraries.
 MoviePreferences = {
-    'watched': default_watched,  # Delete only watched episodes
-    'minDays': default_minDays,  # Minimum number of days to keep
-    'action': default_action,  # Action to perform on movie files (delete/move/copy)
-    'location': default_location,  # Location to keep movie files
-    'onDeck': default_onDeck  # Do not delete move if on deck
+    # 'watched': default_watched,  # Delete only watched episodes
+    # 'minDays': default_minDays,  # Minimum number of days to keep
+    # 'action': default_action,  # Action to perform on movie files (delete/move/copy)
+    # 'location': default_location,  # Location to keep movie files
+    # 'onDeck': default_onDeck  # Do not delete move if on deck
 }
 
 # Profiles allow for customized settings based on Plex Collections. This allows managing of common settings using the Plex Web interface.
@@ -214,8 +214,8 @@ def getToken(user, passw):
 
 
 # For Shared users, get the Access Token for the server, get the https url as well
-def getAccessToken(Token):
-    resources = getURLX("https://plex.tv/api/resources?includeHttps=1", token=Token)
+def getAccessToken(token):
+    resources = getURLX("https://plex.tv/api/resources?includeHttps=1", token=token)
     if not resources:
         return ""
     devices = resources.getElementsByTagName("Device")
@@ -249,8 +249,8 @@ def getPlexHomeUserTokens():
         # print(homeUsers.toprettyxml())
         user_tokens = {}
         for user in homeUsers.getElementsByTagName("User"):
-            id = user.getAttribute("id")
-            switch_page = getURLX("https://plex.tv/api/home/users/" + id + "/switch", data=b'')  # Empty byte data to send a 'POST'
+            user_id = user.getAttribute("id")
+            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch", data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
                 username = user_element.getAttribute("title").lower()
@@ -845,10 +845,10 @@ if not Settings['LogFile'] == "":
     logging.basicConfig(filename=Settings['LogFile'], filemode='w', level=logging.DEBUG)
     logging.captureWarnings(True)
 
-if Token == "":
-    if not Settings['Username'] == "":
+if Settings['Token'] == "":
+    if Settings['Username']:
         Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
-        if Settings['Token'] == "":
+        if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
             log("Token: " + Settings['Token'], True)
