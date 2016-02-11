@@ -838,10 +838,10 @@ if not Settings['LogFile'] == "":
     logging.basicConfig(filename=Settings['LogFile'], filemode='w', level=logging.DEBUG)
     logging.captureWarnings(True)
 
-if Token == "":
-    if not Settings['Username'] == "":
+if Settings['Token'] == "":
+    if Settings['Username']:
         Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
-        if Settings['Token'] == "":
+        if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
             log("Token: " + Settings['Token'], True)
