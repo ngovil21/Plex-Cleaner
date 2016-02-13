@@ -21,5 +21,5 @@ If the script is updated and you need to update your config file without losing 
 
 After you have entered your settings, it is recommended you first run the script with the --test flag. The --test flag will run the script without performing any actions, and flagging files that would be marked for deletion, copying, or moving. Once you have determined that the output is correct, you can run the script without the --test flag. The --test flag will also output the token used to login so you don't have to leave login details in the script.
 
-If you want to support me (does not equal development):
-[<img src=http://imgur.com/WSVZSTW alt="Buy Me a Coffee">] (https://www.paypal.me/ngovil21/1) or [<img src=http://imgur.com/gnvlm6n alt="Buy Me a Beer">] (https://www.paypal.me/ngovil21/3)
+If you want to support me (does not equal development): <br>
+<a href="https://www.paypal.me/ngovil21/1" target=blank><img src=http://imgur.com/WSVZSTW.png alt="Buy Me a Coffee" height=75 width=150 align='center'></a> &nbsp;&nbsp; or &nbsp;&nbsp; <a href="https://www.paypal.me/ngovil21/3" target=blank><img src=http://imgur.com/gnvlm6n.jpg alt="Buy Me a Beer"></a>
