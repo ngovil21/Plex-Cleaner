@@ -20,3 +20,6 @@ To do so you would run PlexCleaner as:
 If the script is updated and you need to update your config file without losing your settings you can run PlexCleaner with --update_config argument. This will add any new configuration settings without overwriting any of your settings in the config file.
 
 After you have entered your settings, it is recommended you first run the script with the --test flag. The --test flag will run the script without performing any actions, and flagging files that would be marked for deletion, copying, or moving. Once you have determined that the output is correct, you can run the script without the --test flag. The --test flag will also output the token used to login so you don't have to leave login details in the script.
+
+If you want to support me (does not equal development):
+[<img src=http://imgur.com/WSVZSTW alt="Buy Me a Coffee">] (https://www.paypal.me/ngovil21/1) or [<img src=http://imgur.com/gnvlm6n alt="Buy Me a Beer">] (https://www.paypal.me/ngovil21/3)
