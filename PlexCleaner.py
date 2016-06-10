@@ -92,6 +92,8 @@ default_location = ''  # /path/to/file
 default_homeUsers = ''  # 'Bob,Joe,Will'
 # if set to anything > 0, videos with watch progress greater than this will be considered watched
 default_progressAsWatched = 0  # Progress percentage to consider video as watched
+# list of folders to ignore for processing
+default_ignoreFolders = []     # Files that are under any of these folders on the Plex Server will not be processed
 ##########################################################################
 
 ## CUSTOMIZED SHOW SETTINGS ##############################################
@@ -147,7 +149,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.91
+CONFIG_VERSION = 1.92
 client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
@@ -292,6 +294,7 @@ def LoadSettings(opts):
     s['default_location'] = opts.get('default_location', default_location)
     s['default_onDeck'] = opts.get('default_onDeck', default_onDeck)
     s['default_homeUsers'] = opts.get('default_homeUsers', default_homeUsers)
+    s['default_ignoreFolders'] = opts.get('default_ignoreFolders', default_ignoreFolders)
     s['ShowPreferences'] = OrderedDict(sorted(opts.get('ShowPreferences', ShowPreferences).items()))
     s['MoviePreferences'] = OrderedDict(sorted(opts.get('MoviePreferences', MoviePreferences).items()))
     s['Profiles'] = OrderedDict(sorted(opts.get('Profiles', Profiles).items()))
@@ -359,6 +362,11 @@ def performAction(file, action, media_id=0, location=""):
     action = action.lower()
     if action.startswith('k'):  # Keep file
         return False
+    for path in Settings['default_ignoreFolders']:
+        if file.startswith(path):
+            log("File is in " + path)
+            log("[IGNORED] " + file)
+            return False
     if test or action.startswith('f'):  # Test file or Flag file
         if not os.path.isfile(file):
             log("[NOT FOUND] " + file)
