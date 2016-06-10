@@ -630,8 +630,8 @@ def cleanUpFolders(section, max_size):
         if directory.getAttribute("key") == section:
             for location in directory.getElementsByTagName("Location"):
                 ignore_folder = False
-                for f in Settings['default_ignoredFolders']:
-                    if location.startswith(f):
+                for f in Settings['default_ignoreFolders']:
+                    if location.getAttribute("path").startswith(f):
                         ignore_folder = True
                 if ignore_folder:
                     continue
