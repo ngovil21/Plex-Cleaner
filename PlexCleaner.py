@@ -553,18 +553,24 @@ def checkMovies(doc, section):
     global KeptCount
 
     changes = 0
-    movie_settings = default_settings.copy()
-    movie_settings.update(Settings['MoviePreferences'])
-    check_users = []
-    if movie_settings['homeUsers']:
-        check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
-        for i in range(0, len(check_users)):  # Remove extra spaces and commas
-            check_users[i] = check_users[i].strip(", ")
     for VideoNode in doc.getElementsByTagName("Video"):
+        movie_settings = default_settings.copy()
+        movie_settings.update(Settings['MoviePreferences'])
         title = VideoNode.getAttribute("title")
         movie_id = VideoNode.getAttribute("ratingKey")
         m = getMediaInfo(VideoNode)
         onDeck = CheckOnDeck(movie_id)
+        collections = doc.getElementsByTagName("Collection")
+        for collection in collections:
+            collection_tag = collection.getAttribute('tag')
+            if collection_tag and collection_tag in Settings['Profiles']:
+                movie_settings.update(Settings['Profiles'][collection_tag])
+                print("Using profile: " + collection_tag)
+        check_users = []
+        if movie_settings['homeUsers']:
+            check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
+            for i in range(0, len(check_users)):  # Remove extra spaces and commas
+                check_users[i] = check_users[i].strip(", ")
         if movie_settings['watched']:
             if check_users:
                 movie_settings['onDeck'] = False
