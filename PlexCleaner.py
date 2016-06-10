@@ -629,6 +629,12 @@ def cleanUpFolders(section, max_size):
     for directory in doc_sections.getElementsByTagName("Directory"):
         if directory.getAttribute("key") == section:
             for location in directory.getElementsByTagName("Location"):
+                ignore_folder = False
+                for f in Settings['default_ignoredFolders']:
+                    if location.startswith(f):
+                        ignore_folder = True
+                if ignore_folder:
+                    continue
                 path = getLocalPath(location.getAttribute("path"))
                 if os.path.isdir(path):
                     for folder in os.listdir(path):
@@ -645,7 +651,14 @@ def cleanUpFolders(section, max_size):
                                                                '.nodelete')):  # Do not delete folders that have .nodelete in them
                                     continue
                                 size = getTotalSize(subfolder_path)
+                                ignore_folder = False
+                                for f in Settings['default_ignoredFolders']:
+                                    if subfolder_path.startswith(f):
+                                        ignore_folder = True
+                                if ignore_folder:
+                                    continue
                                 if os.path.isdir(subfolder_path) and size < max_size * 1024 * 1024:
+
                                     try:
                                         if test:  # or default_action.startswith("f"):
                                             log("**[Flagged]: " + subfolder_path)
