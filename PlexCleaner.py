@@ -568,7 +568,7 @@ def checkMovies(doc, section):
         movie_id = VideoNode.getAttribute("ratingKey")
         m = getMediaInfo(VideoNode)
         onDeck = CheckOnDeck(movie_id)
-        collections = doc.getElementsByTagName("Collection")
+        collections = VideoNode.getElementsByTagName("Collection")
         for collection in collections:
             collection_tag = collection.getAttribute('tag')
             if collection_tag and collection_tag in Settings['Profiles']:
