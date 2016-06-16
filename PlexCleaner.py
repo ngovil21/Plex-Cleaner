@@ -652,7 +652,7 @@ def cleanUpFolders(section, max_size):
                                     continue
                                 size = getTotalSize(subfolder_path)
                                 ignore_folder = False
-                                for f in Settings['default_ignoredFolders']:
+                                for f in Settings['default_ignoreFolders']:
                                     if subfolder_path.startswith(f):
                                         ignore_folder = True
                                 if ignore_folder:
