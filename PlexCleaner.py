@@ -8,6 +8,8 @@
 # Version 1.8 - Added Profies
 # Version 1.9 - Added options for checking watch status for multiple users in Plex Home
 # Version 1.91 - Added ability to select section by title, preparation for new config
+# Version 1.92 - Add ignored folders
+# Version 1.93 - Add ability to chose log file mode.
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
@@ -18,6 +20,7 @@ Port = ""  # Port of the Plex Media Server, by default 32400 will be used
 SectionList = []  # Sections to clean. If empty all sections will be looked at, the section id should be used here which is the number found be in the url on PlexWeb after /section/[ID]
 IgnoreSections = []  # Sections to skip cleaning, for use when Settings['SectionList'] is not specified, the same as SectionList, the section id should be used here
 LogFile = ""  # Location of log file to save console output
+LogFileMode = "overwrite" #File Mode for logging, overwrite or append
 trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
 
 # Use Username/Password or Token for servers with PlexHome
@@ -149,7 +152,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.92
+CONFIG_VERSION = 1.93
 client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
@@ -273,6 +276,7 @@ def LoadSettings(opts):
     s['SectionList'] = opts.get('SectionList', SectionList)
     s['IgnoreSections'] = opts.get('IgnoreSections', IgnoreSections)
     s['LogFile'] = opts.get('LogFile', LogFile)
+    s['LogFileMode'] = opts.get('LogFileMode',LogFileMode)
     s['trigger_rescan'] = opts.get('trigger_rescan', trigger_rescan)
     s['Token'] = opts.get('Token', Token)
     s['Username'] = opts.get('Username', Username)
@@ -865,12 +869,19 @@ if Settings['Port'] == "":
 
 if test:
     print(json.dumps(Settings, indent=2))
+    print("")
 
 LogToFile = False
 if not Settings['LogFile'] == "":
     LogToFile = True
-    logging.basicConfig(filename=Settings['LogFile'], filemode='w', level=logging.DEBUG)
+    filemode = "w"
+    if Settings.get("LogFileMode").startswith("a"):
+        filemode = "a"
+    logging.basicConfig(filename=Settings['LogFile'], filemode=filemode, level=logging.DEBUG)
     logging.captureWarnings(True)
+
+log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
+log("")
 
 if Settings['Token'] == "":
     if Settings['Username']:
