@@ -20,7 +20,7 @@ Port = ""  # Port of the Plex Media Server, by default 32400 will be used
 SectionList = []  # Sections to clean. If empty all sections will be looked at, the section id should be used here which is the number found be in the url on PlexWeb after /section/[ID]
 IgnoreSections = []  # Sections to skip cleaning, for use when Settings['SectionList'] is not specified, the same as SectionList, the section id should be used here
 LogFile = ""  # Location of log file to save console output
-LogFileMode = "overwrite" #File Mode for logging, overwrite or append
+LogFileMode = "overwrite" #File Mode for logging, overwrite or append, default is overwrite
 trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
 
 # Use Username/Password or Token for servers with PlexHome
