@@ -28,6 +28,8 @@
   "default_onDeck": true,
   "default_homeUsers": "",
   "default_ignoreFolders": [
+    "/path/to/ignore/folder1",
+    "/path/to/ignore/folder2"
   ],
   "ShowPreferences": {
       "Show 1": {
