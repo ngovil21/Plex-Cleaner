@@ -30,6 +30,27 @@
   "default_ignoreFolders": [
   ],
   "ShowPreferences": {
+      "Show 1": {
+          "maxDays": 30,
+          "action": "delete",
+          "onDeck": true,
+          "minDays": 10,
+          "location": "/path/to/folder",
+          "watched": true,
+          "episodes": 3
+        },
+        "Show 2": {
+          "maxDays": 30,
+          "action": "delete",
+          "onDeck": false,
+          "minDays": 10,
+          "location": "/path/to/folder",
+          "watched": false,
+          "episodes": 0
+        },
+        "Show 3": {
+          "action": "keep"
+        }
   },
   "MoviePreferences": {
     "action": "keep",
