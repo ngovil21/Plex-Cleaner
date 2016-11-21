@@ -899,7 +899,7 @@ log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
 log("")
 
 #If we don't have a client_id, generate a unique UID for machine and save in config
-if not 'Client_ID' in Settings:
+if not Settings['Client_ID']:
     Settings['Client_ID'] = str(uuid.uuid1().hex)
     if Config:
         dumpSettings(Config)
