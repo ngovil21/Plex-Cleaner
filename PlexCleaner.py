@@ -153,7 +153,6 @@ except:
     import ConfigParser
 
 CONFIG_VERSION = 1.93
-client_id = uuid.uuid1()
 home_user_tokens = {}
 machine_client_identifier = ''
 debug_mode = False
@@ -196,7 +195,7 @@ def getToken(user, passw):
         'X-Plex-Provides': 'Python',
         'X-Plex-Product': 'PlexCleaner',
         'X-Plex-Client-Identifier': '10101010101010',
-        'X-Plex-Version': platform.python_version(),
+        'X-Plex-Version': CONFIG_VERSION,
         'Authorization': b'Basic ' + encode
     }
     try:
@@ -305,6 +304,7 @@ def LoadSettings(opts):
     s['MoviePreferences'] = OrderedDict(sorted(opts.get('MoviePreferences', MoviePreferences).items()))
     s['Profiles'] = OrderedDict(sorted(opts.get('Profiles', Profiles).items()))
     s['Version'] = opts.get('Version', CONFIG_VERSION)
+    s['Client_ID'] = opts.get('Client_ID', None)
     return s
 
 
@@ -332,7 +332,6 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
             time.sleep(timeout)
         try:
             headers = {
-                'X-Plex-Username': Settings['Username'],
                 "X-Plex-Token": token,
                 'X-Plex-Platform': platform.system(),
                 'X-Plex-Device': platform.machine(),
@@ -341,9 +340,11 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
                 'X-Plex-Provides': 'controller',
                 'X-Plex-Product': 'PlexCleaner',
                 'X-Plex-Version': str(CONFIG_VERSION),
-                'X-Plex-Client-Identifier': client_id.hex,
+                'X-Plex-Client-Identifier': Settings['Client_ID'],
                 'Accept': 'application/xml'
             }
+            if Settings['Username']:
+                headers['X-Plex-Username'] = Settings['Username']
             if referer:
                 headers['Referer'] = referer
             req = urllib2.Request(url=URL, data=data, headers=headers)
@@ -666,7 +667,6 @@ def cleanUpFolders(section, max_size):
                                 if ignore_folder:
                                     continue
                                 if os.path.isdir(subfolder_path) and size < max_size * 1024 * 1024:
-
                                     try:
                                         if test:  # or default_action.startswith("f"):
                                             log("**[Flagged]: " + subfolder_path)
@@ -897,6 +897,12 @@ if not Settings['LogFile'] == "":
 
 log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
 log("")
+
+#If we don't have a client_id, generate a unique UID for machine and save in config
+if not 'Client_ID' in Settings:
+    Settings['Client_ID'] = str(uuid.uuid1().hex)
+    if Config:
+        dumpSettings(Config)
 
 if Settings['Token'] == "":
     if Settings['Username']:
