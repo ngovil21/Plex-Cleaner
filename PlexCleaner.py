@@ -155,7 +155,6 @@ except:
 CONFIG_VERSION = 1.93
 home_user_tokens = {}
 machine_client_identifier = ''
-debug_mode = False
 try:
     import urllib.request as urllib2
 except:
@@ -187,14 +186,14 @@ def getToken(user, passw):
         encode = base64.b64encode(auth).replace(b'\n', b'')
     URL = "https://plex.tv/users/sign_in.json"
     headers = {
-        'X-Plex-Device-Name': 'Python',
+        'X-Plex-Device-Name': 'PlexCleaner',
         'X-Plex-Username': user,
         'X-Plex-Platform': platform.system(),
         'X-Plex-Device': platform.system(),
         'X-Plex-Platform-Version': platform.release(),
         'X-Plex-Provides': 'Python',
-        'X-Plex-Product': 'PlexCleaner',
-        'X-Plex-Client-Identifier': '10101010101010',
+        'X-Plex-Product': 'Python',
+        'X-Plex-Client-Identifier': Settings.get('Client_ID'),
         'X-Plex-Version': CONFIG_VERSION,
         'Authorization': b'Basic ' + encode
     }
@@ -334,11 +333,11 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
             headers = {
                 "X-Plex-Token": token,
                 'X-Plex-Platform': platform.system(),
-                'X-Plex-Device': platform.machine(),
-                'X-Plex-Device-Name': 'Python',
+                'X-Plex-Device': platform.system(),
+                'X-Plex-Device-Name': 'PlexCleaner',
                 'X-Plex-Platform-Version': platform.release(),
                 'X-Plex-Provides': 'controller',
-                'X-Plex-Product': 'PlexCleaner',
+                'X-Plex-Product': 'Python',
                 'X-Plex-Version': str(CONFIG_VERSION),
                 'X-Plex-Client-Identifier': Settings['Client_ID'],
                 'Accept': 'application/xml'
@@ -583,6 +582,8 @@ def checkMovies(doc, section):
             if collection_tag and collection_tag in Settings['Profiles']:
                 movie_settings.update(Settings['Profiles'][collection_tag])
                 print("Using profile: " + collection_tag)
+        if debug_mode:
+            log(str(movie_settings), True)
         check_users = []
         if movie_settings['homeUsers']:
             check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
@@ -693,6 +694,8 @@ def checkShow(showDirectory):
         if collection_tag and collection_tag in Settings['Profiles']:
             show_settings.update(Settings['Profiles'][collection_tag])
             print("Using profile: " + collection_tag)
+    if debug_mode:
+        log(str(show_settings), True)
     show = getURLX(Settings['Host'] + ":" + Settings['Port'] + showDirectory.getAttribute('key'))
     if not show:  # Check if show page is None or empty
         log("Failed to load show page. Skipping...")
