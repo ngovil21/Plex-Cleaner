@@ -153,7 +153,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.93
+CONFIG_VERSION = 1.94
 home_user_tokens = {}
 machine_client_identifier = ''
 try:
