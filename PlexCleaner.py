@@ -10,6 +10,7 @@
 # Version 1.91 - Added ability to select section by title, preparation for new config
 # Version 1.92 - Add ignored folders
 # Version 1.93 - Add ability to chose log file mode.
+# Version 1.94 - Save client id in config file to have use the same device everytime.
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
@@ -903,9 +904,11 @@ log("")
 
 #If we don't have a client_id, generate a unique UID for machine and save in config
 if not Settings['Client_ID']:
-    Settings['Client_ID'] = str(uuid.uuid1().hex)
     if Config:
+        Settings['Client_ID'] = str(uuid.uuid1().hex)
         dumpSettings(Config)
+    else:
+        Settings['Client_ID'] = "506c6578436c65616e6572"    #PlexCleaner in Hexadecimal
 
 if Settings['Token'] == "":
     if Settings['Username']:
