@@ -1,3 +1,5 @@
+####*Please update the script to version 1.94 to avoid problems with your server by creating too many devices!*
+
 Plex Cleaner
 
 A Script to clean up space on your Plex Media Server!
