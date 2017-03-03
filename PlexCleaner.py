@@ -153,7 +153,7 @@ try:
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.94
+CONFIG_VERSION = 1.941
 home_user_tokens = {}
 machine_client_identifier = ''
 try:
@@ -805,10 +805,6 @@ def checkShow(showDirectory):
 
 ## Main Script ############################################
 
-# reload sys to set default encoding to utf-8
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
@@ -820,6 +816,8 @@ parser.add_argument("--update_config", "-update_config", action="store_true",
                     help="Update the config file with new settings from the script and exit")
 parser.add_argument("--debug", "-debug", action="store_true",
                     help="Run script in debug mode to log more error information")
+parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload",
+                    help="Reload system with default encoding set to utf-8")
 parser.add_argument("--config_edit", "-config_edit", action="store_true",
                     help="Prompts for editing the config from the commandline")
 
@@ -827,6 +825,14 @@ args = parser.parse_args()
 
 test = args.test
 debug_mode = args.debug
+
+if args.reload_encoding:
+    # reload sys to set default encoding to utf-8
+    try:
+        reload(sys)
+        sys.setdefaultencoding("utf-8")
+    except:
+        pass
 
 if args.config:
     Config = args.config
