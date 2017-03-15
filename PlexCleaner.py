@@ -195,7 +195,7 @@ def getToken(user, passw):
         'X-Plex-Platform-Version': platform.release(),
         'X-Plex-Provides': 'Python',
         'X-Plex-Product': 'Python',
-        'X-Plex-Client-Identifier': Settings.get('Client_ID'),
+        'X-Plex-Client-Identifier': Settings.get('Client_ID', "506c6578436c65616e6572"),
         'X-Plex-Version': CONFIG_VERSION,
         'Authorization': b'Basic ' + encode
     }
@@ -939,7 +939,7 @@ if args.clean_devices:
     deviceCount = 0
     log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
-        if device.getAttribute("name") == "Python" or device.getAttribute("product") == "PlexCleaner":
+        if device.getAttribute("name") == "PlexCleaner":
             deviceCount += 1
             id = device.getAttribute("id")
             try:
