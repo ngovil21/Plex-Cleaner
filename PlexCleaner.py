@@ -951,6 +951,7 @@ if args.clean_devices:
             if deviceCount > 100:
                 log("Device limit reached! Please run again.")
                 break
+    log("Exiting now, verify changes on PlexWeb. \n")
     exit()
 
 if not Settings['Host'].startswith("http"):
