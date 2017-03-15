@@ -927,7 +927,7 @@ if Settings['Token'] == "":
             log("Token: " + Settings['Token'], True)
             login = True
 
-if args.cleanup_devices:
+if args.clean_devices:
     try:
         x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
     except:
@@ -951,6 +951,9 @@ if args.cleanup_devices:
                 break
     exit()
 
+if not Settings['Host'].startswith("http"):
+    Settings['Host'] = "http://" + Settings['Host']
+
 server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
 if server_check:
     media_container = server_check.getElementsByTagName("MediaContainer")[0]
@@ -958,6 +961,8 @@ if server_check:
         Settings['DeviceName'] = media_container.getAttribute("friendlyName")
     if not machine_client_identifier:
         machine_client_identifier = media_container.getAttribute("machineIdentifier")
+else:
+    log("Cannot reach server!")
 
 if Settings['Shared'] and Settings['Token']:
     accessToken = getAccessToken(Settings['Token'])
@@ -967,9 +972,6 @@ if Settings['Shared'] and Settings['Token']:
             log("Access Token: " + Settings['Token'], True)
     else:
         log("Access Token not found or not a shared account")
-
-if not Settings['Host'].startswith("http"):
-    Settings['Host'] = "http://" + Settings['Host']
 
 default_settings = {'episodes': Settings['default_episodes'],
                     'minDays': Settings['default_minDays'],
