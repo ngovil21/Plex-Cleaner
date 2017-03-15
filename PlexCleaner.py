@@ -939,11 +939,14 @@ if args.clean_devices:
     deviceCount = 0
     log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
+        name = device.getAttribute("name")
+        if device.getAttribute("token") == Settings['Token']:       #Don't delete the current device token
+            continue
         if device.getAttribute("name") == "PlexCleaner":
             deviceCount += 1
             id = device.getAttribute("id")
             try:
-                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE')
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',parseXML=False)
                 log("Deleted device: " + device.getAttribute("clientIdentifier"))
                 sleep(0.1)      #sleep for 100ms to rate limit requests to plex.tv
             except:
