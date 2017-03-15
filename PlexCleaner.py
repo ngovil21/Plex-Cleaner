@@ -227,8 +227,8 @@ def getAccessToken(token):
     for device in devices:
         if len(devices) == 1 or machine_client_identifier == device.getAttribute("clientIdentifier") or \
                 (Settings['DeviceName'] and (
-                        Settings['DeviceName'].lower() in device.getAttribute('name').lower() or Settings[
-                    'DeviceName'].lower() in device.getAttribute('clientIdentifier').lower())):
+                                Settings['DeviceName'].lower() in device.getAttribute('name').lower() or Settings[
+                            'DeviceName'].lower() in device.getAttribute('clientIdentifier').lower())):
             access_token = device.getAttribute('accessToken')
             if not access_token:
                 return ""
@@ -897,7 +897,6 @@ if Settings['Host'] == "":
 if Settings['Port'] == "":
     Settings['Port'] = "32400"
 
-
 LogToFile = False
 if not Settings['LogFile'] == "":
     LogToFile = True
@@ -910,13 +909,13 @@ if not Settings['LogFile'] == "":
 log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
 log("")
 
-#If we don't have a client_id, generate a unique UID for machine and save in config
+# If we don't have a client_id, generate a unique UID for machine and save in config
 if not Settings['Client_ID']:
     if Config:
         Settings['Client_ID'] = str(uuid.uuid1().hex)
         dumpSettings(Config)
     else:
-        Settings['Client_ID'] = "506c6578436c65616e6572"    #PlexCleaner in Hexadecimal
+        Settings['Client_ID'] = "506c6578436c65616e6572"  # PlexCleaner in Hexadecimal
 
 if Settings['Token'] == "":
     if Settings['Username']:
@@ -940,15 +939,16 @@ if args.clean_devices:
     log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
         name = device.getAttribute("name")
-        if device.getAttribute("token") == Settings['Token']:       #Don't delete the current device token
+        if device.getAttribute("token") == Settings['Token']:  # Don't delete the current device token
             continue
-        if device.getAttribute("name") == "PlexCleaner":
+        if device.getAttribute("name") == "PlexCleaner" or device.getAttribute("product") == "PlexCleaner":
             deviceCount += 1
             id = device.getAttribute("id")
             try:
-                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',parseXML=False)
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',
+                        parseXML=False)
                 log("Deleted device: " + device.getAttribute("clientIdentifier"))
-                sleep(0.1)      #sleep for 100ms to rate limit requests to plex.tv
+                sleep(0.1)  # sleep for 100ms to rate limit requests to plex.tv
             except:
                 log("Unable to delete device!")
             if deviceCount > 100:
