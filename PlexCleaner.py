@@ -11,6 +11,7 @@
 # Version 1.92 - Add ignored folders
 # Version 1.93 - Add ability to chose log file mode.
 # Version 1.94 - Save client id in config file to have use the same device everytime.
+# Version 1.95 - Added the ability to cleanup old PlexCleaner devices and reload encoding as commandline arguments
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
