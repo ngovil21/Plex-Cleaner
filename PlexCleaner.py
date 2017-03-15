@@ -928,6 +928,7 @@ if Settings['Token'] == "":
             login = True
 
 if args.clean_devices:
+    log("Cleaning up devices on plex.tv")
     try:
         x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
     except:
@@ -936,6 +937,7 @@ if args.clean_devices:
     if debug_mode:
         print(x.toprettyxml())
     deviceCount = 0
+    log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
         if device.getAttribute("name") == "Python" or device.getAttribute("product") == "PlexCleaner":
             deviceCount += 1
