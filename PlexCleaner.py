@@ -944,12 +944,12 @@ if args.clean_devices:
             id = device.getAttribute("id")
             try:
                 getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE')
-                print("Deleted device: " + device.getAttribute("clientIdentifier"))
+                log("Deleted device: " + device.getAttribute("clientIdentifier"))
                 sleep(0.1)      #sleep for 100ms to rate limit requests to plex.tv
             except:
-                print("Unable to delete device!")
+                log("Unable to delete device!")
             if deviceCount > 100:
-                print("Device limit reached! Please run again.")
+                log("Device limit reached! Please run again.")
                 break
     exit()
 
