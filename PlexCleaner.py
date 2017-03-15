@@ -147,13 +147,14 @@ import argparse
 from collections import OrderedDict
 import time
 import uuid
+from time import sleep
 
 try:
     import configparser as ConfigParser
 except:
     import ConfigParser
 
-CONFIG_VERSION = 1.94
+CONFIG_VERSION = 1.941
 home_user_tokens = {}
 machine_client_identifier = ''
 try:
@@ -194,7 +195,7 @@ def getToken(user, passw):
         'X-Plex-Platform-Version': platform.release(),
         'X-Plex-Provides': 'Python',
         'X-Plex-Product': 'Python',
-        'X-Plex-Client-Identifier': Settings.get('Client_ID'),
+        'X-Plex-Client-Identifier': Settings.get('Client_ID', "506c6578436c65616e6572"),
         'X-Plex-Version': CONFIG_VERSION,
         'Authorization': b'Basic ' + encode
     }
@@ -322,7 +323,7 @@ def dumpSettings(output):
         json.dump(Settings, outfile, indent=2)
 
 
-def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None):
+def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None, method=None):
     if not token:
         token = Settings['Token']
     if not URL.startswith('http'):
@@ -348,6 +349,8 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
             if referer:
                 headers['Referer'] = referer
             req = urllib2.Request(url=URL, data=data, headers=headers)
+            if method:
+                req.get_method = lambda: method
             page = urllib2.urlopen(req)
             if page:
                 if parseXML:
@@ -805,10 +808,6 @@ def checkShow(showDirectory):
 
 ## Main Script ############################################
 
-# reload sys to set default encoding to utf-8
-reload(sys)
-sys.setdefaultencoding("utf-8")
-
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
@@ -820,13 +819,25 @@ parser.add_argument("--update_config", "-update_config", action="store_true",
                     help="Update the config file with new settings from the script and exit")
 parser.add_argument("--debug", "-debug", action="store_true",
                     help="Run script in debug mode to log more error information")
-parser.add_argument("--config_edit", "-config_edit", action="store_true",
-                    help="Prompts for editing the config from the commandline")
+parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload",
+                    help="Reload system with default encoding set to utf-8")
+parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
+                    help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
+# parser.add_argument("--config_edit", "-config_edit", action="store_true",
+#                     help="Prompts for editing the config from the commandline")
 
 args = parser.parse_args()
 
 test = args.test
 debug_mode = args.debug
+
+if args.reload_encoding:
+    # reload sys to set default encoding to utf-8
+    try:
+        reload(sys)
+        sys.setdefaultencoding("utf-8")
+    except:
+        pass
 
 if args.config:
     Config = args.config
@@ -886,9 +897,6 @@ if Settings['Host'] == "":
 if Settings['Port'] == "":
     Settings['Port'] = "32400"
 
-if test:
-    print(json.dumps(Settings, indent=2))
-    print("")
 
 LogToFile = False
 if not Settings['LogFile'] == "":
@@ -919,6 +927,39 @@ if Settings['Token'] == "":
             log("Token: " + Settings['Token'], True)
             login = True
 
+if args.clean_devices:
+    log("Cleaning up devices on plex.tv")
+    try:
+        x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
+    except:
+        print("Unable to load devices from http://plex.tv!")
+        exit()
+    if debug_mode:
+        print(x.toprettyxml())
+    deviceCount = 0
+    log("There are %d client devices." % len(x.getElementsByTagName("Device")))
+    for device in x.getElementsByTagName("Device"):
+        name = device.getAttribute("name")
+        if device.getAttribute("token") == Settings['Token']:       #Don't delete the current device token
+            continue
+        if device.getAttribute("name") == "PlexCleaner":
+            deviceCount += 1
+            id = device.getAttribute("id")
+            try:
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',parseXML=False)
+                log("Deleted device: " + device.getAttribute("clientIdentifier"))
+                sleep(0.1)      #sleep for 100ms to rate limit requests to plex.tv
+            except:
+                log("Unable to delete device!")
+            if deviceCount > 100:
+                log("Device limit reached! Please run again.")
+                break
+    log("Exiting now, verify changes on PlexWeb. \n")
+    exit()
+
+if not Settings['Host'].startswith("http"):
+    Settings['Host'] = "http://" + Settings['Host']
+
 server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
 if server_check:
     media_container = server_check.getElementsByTagName("MediaContainer")[0]
@@ -926,6 +967,8 @@ if server_check:
         Settings['DeviceName'] = media_container.getAttribute("friendlyName")
     if not machine_client_identifier:
         machine_client_identifier = media_container.getAttribute("machineIdentifier")
+else:
+    log("Cannot reach server!")
 
 if Settings['Shared'] and Settings['Token']:
     accessToken = getAccessToken(Settings['Token'])
@@ -935,9 +978,6 @@ if Settings['Shared'] and Settings['Token']:
             log("Access Token: " + Settings['Token'], True)
     else:
         log("Access Token not found or not a shared account")
-
-if not Settings['Host'].startswith("http"):
-    Settings['Host'] = "http://" + Settings['Host']
 
 default_settings = {'episodes': Settings['default_episodes'],
                     'minDays': Settings['default_minDays'],
