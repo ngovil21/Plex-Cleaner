@@ -147,6 +147,7 @@ import argparse
 from collections import OrderedDict
 import time
 import uuid
+from time import sleep
 
 try:
     import configparser as ConfigParser
@@ -322,7 +323,7 @@ def dumpSettings(output):
         json.dump(Settings, outfile, indent=2)
 
 
-def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None):
+def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None, method=None):
     if not token:
         token = Settings['Token']
     if not URL.startswith('http'):
@@ -348,6 +349,8 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
             if referer:
                 headers['Referer'] = referer
             req = urllib2.Request(url=URL, data=data, headers=headers)
+            if method:
+                req.get_method = lambda: method
             page = urllib2.urlopen(req)
             if page:
                 if parseXML:
@@ -818,6 +821,8 @@ parser.add_argument("--debug", "-debug", action="store_true",
                     help="Run script in debug mode to log more error information")
 parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload",
                     help="Reload system with default encoding set to utf-8")
+parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
+                    help="Cleanup old client devices", action="store_true", default=False)
 parser.add_argument("--config_edit", "-config_edit", action="store_true",
                     help="Prompts for editing the config from the commandline")
 
@@ -892,9 +897,6 @@ if Settings['Host'] == "":
 if Settings['Port'] == "":
     Settings['Port'] = "32400"
 
-if test:
-    print(json.dumps(Settings, indent=2))
-    print("")
 
 LogToFile = False
 if not Settings['LogFile'] == "":
@@ -924,6 +926,30 @@ if Settings['Token'] == "":
         elif test:
             log("Token: " + Settings['Token'], True)
             login = True
+
+if args.cleanup_devices:
+    try:
+        x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
+    except:
+        print("Unable to load devices from http://plex.tv!")
+        exit()
+    if debug_mode:
+        print(x.toprettyxml())
+    deviceCount = 0
+    for device in x.getElementsByTagName("Device"):
+        if device.getAttribute("name") == "Python" or device.getAttribute("product") == "PlexCleaner":
+            deviceCount += 1
+            id = device.getAttribute("id")
+            try:
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE')
+                print("Deleted device: " + device.getAttribute("clientIdentifier"))
+                sleep(0.1)      #sleep for 100ms to rate limit requests to plex.tv
+            except:
+                print("Unable to delete device!")
+            if deviceCount > 100:
+                print("Device limit reached! Please run again.")
+                break
+    exit()
 
 server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
 if server_check:
