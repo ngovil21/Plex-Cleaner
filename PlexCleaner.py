@@ -822,9 +822,9 @@ parser.add_argument("--debug", "-debug", action="store_true",
 parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload",
                     help="Reload system with default encoding set to utf-8")
 parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
-                    help="Cleanup old client devices", action="store_true", default=False)
-parser.add_argument("--config_edit", "-config_edit", action="store_true",
-                    help="Prompts for editing the config from the commandline")
+                    help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
+# parser.add_argument("--config_edit", "-config_edit", action="store_true",
+#                     help="Prompts for editing the config from the commandline")
 
 args = parser.parse_args()
 
