@@ -818,9 +818,9 @@ parser.add_argument("--config", "-config", "--load", "-load",
                     help="Load settings from a configuration file and run with settings")
 parser.add_argument("--update_config", "-update_config", action="store_true",
                     help="Update the config file with new settings from the script and exit")
-parser.add_argument("--debug", "-debug", action="store_true",
+parser.add_argument("--debug", "-debug", action="store_true", default=False,
                     help="Run script in debug mode to log more error information")
-parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload",
+parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload", action="store_true", default=False,
                     help="Reload system with default encoding set to utf-8")
 parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
                     help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
