@@ -258,8 +258,7 @@ def getPlexHomeUserTokens():
         user_tokens = {}
         for user in homeUsers.getElementsByTagName("User"):
             user_id = user.getAttribute("id")
-            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch",
-                                  data=b'')  # Empty byte data to send a 'POST'
+            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch", data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
                 username = user_element.getAttribute("title").lower()
@@ -325,14 +324,14 @@ def dumpSettings(output):
         json.dump(Settings, outfile, indent=2)
 
 
-def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None, token=None, method=None):
+def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=None, token=None, method=None):
     if not token:
         token = Settings['Token']
     if not URL.startswith('http'):
         URL = 'http://' + URL
     for x in range(0, max_tries):
         if x > 0:
-            time.sleep(timeout)
+            sleep(timeout)
         try:
             headers = {
                 "X-Plex-Token": token,
