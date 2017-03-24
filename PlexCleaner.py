@@ -1079,8 +1079,11 @@ log("  Moved Files           " + str(MoveCount))
 log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
-for item in ActionHistory:
-    log("  " + str(item))
+if len(ActionHistory) > 0:
+    log("")
+    log("  Changed Files:")
+    for item in ActionHistory:
+        log("  " + str(item))
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
