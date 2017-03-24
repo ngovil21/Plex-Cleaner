@@ -12,6 +12,7 @@
 # Version 1.93 - Add ability to chose log file mode.
 # Version 1.94 - Save client id in config file to have use the same device everytime.
 # Version 1.95 - Added the ability to cleanup old PlexCleaner devices and reload encoding as commandline arguments
+# Version 1.96 - Modified files are printed at the end of the log as well now.
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
@@ -383,6 +384,7 @@ def performAction(file, action, media_id=0, location=""):
             log("[NOT FOUND] " + file)
             return False
         log("**[FLAGGED] " + file)
+        ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
@@ -393,6 +395,7 @@ def performAction(file, action, media_id=0, location=""):
             urllib2.urlopen(req)
             DeleteCount += 1
             log("**[DELETED] " + file)
+            ActionHistory.append("[DELETED] " + file)
             return True
         except Exception as e:
             log("Error deleting file: %s" % e, True)
@@ -411,6 +414,7 @@ def performAction(file, action, media_id=0, location=""):
             for f in filelist:
                 shutil.copy(os.path.realpath(f), location)
                 log("**[COPIED] " + file)
+            ActionHistory.append("[COPIED] " + filelist[0])
             CopyCount += 1
             return True
         except Exception as e:
@@ -427,6 +431,7 @@ def performAction(file, action, media_id=0, location=""):
                 return False
             if os.path.islink(f):
                 os.unlink(f)
+        ActionHistory.append("[MOVED] " + filelist[0])
         MoveCount += 1
         return True
     elif action.startswith('d'):
@@ -437,10 +442,12 @@ def performAction(file, action, media_id=0, location=""):
             except Exception as e:
                 log("Error deleting file: %s" % e, True)
                 continue
+        ActionHistory.append("[DELETED] " + filelist[0])
         DeleteCount += 1
         return True
     else:
         log("[FLAGGED] " + file)
+        ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
         return False
 
@@ -1004,6 +1011,7 @@ CopyCount = 0
 FlaggedCount = 0
 OnDeckCount = 0
 KeptCount = 0
+ActionHistory = []
 
 doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
 
@@ -1071,6 +1079,8 @@ log("  Moved Files           " + str(MoveCount))
 log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
+for item in ActionHistory:
+    log(item)
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
