@@ -1080,7 +1080,7 @@ log("  Copied Files          " + str(CopyCount))
 log("  Flagged Files         " + str(FlaggedCount))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 for item in ActionHistory:
-    log(item)
+    log("  " + str(item))
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
