@@ -25,6 +25,13 @@ IgnoreSections = []  # Sections to skip cleaning, for use when Settings['Section
 LogFile = ""  # Location of log file to save console output
 LogFileMode = "overwrite"  # File Mode for logging, overwrite or append, default is overwrite
 trigger_rescan = False  # trigger_rescan will rescan a section if changes are made to it
+EmailLog = False  # Email the log file contents at conclusion of script
+EmailServer = ""  # Email Server (for Gmail, use smtp.gmail.com)
+EmailServerPort = 0  # Email Server Port (for Gmail, use 587)
+EmailServerUseTLS = False  # Email Server - whether or not to use TLS (for Gmail, use true)
+EmailUsername = ""  # Email server username
+EmailPassword = ""  # Email server password - if using Gmail, you can use an "app password" so your regular email password isn't in plain text in your config. See: https://myaccount.google.com/apppasswords
+EmailRecipient = ""  # Email address to receive the log file contents, if enabled.
 
 # Use Username/Password or Token for servers with PlexHome
 # To generate a proper Token, first put your username and password and run the script with the flag --test.
@@ -150,6 +157,11 @@ from collections import OrderedDict
 import time
 import uuid
 from time import sleep
+
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
+from email.Utils import formatdate
+import smtplib
 
 try:
     import configparser as ConfigParser
@@ -281,6 +293,13 @@ def LoadSettings(opts):
     s['LogFile'] = opts.get('LogFile', LogFile)
     s['LogFileMode'] = opts.get('LogFileMode', LogFileMode)
     s['trigger_rescan'] = opts.get('trigger_rescan', trigger_rescan)
+    s['EmailLog'] = opts.get('EmailLog', EmailLog)
+    s['EmailServer'] = opts.get('EmailServer', EmailServer)
+    s['EmailServerPort'] = opts.get('EmailServerPort', EmailServerPort)
+    s['EmailServerUseTLS'] = opts.get('EmailServerUseTLS', EmailServerUseTLS)
+    s['EmailUsername'] = opts.get('EmailUsername', EmailUsername)
+    s['EmailPassword'] = opts.get('EmailPassword', EmailPassword)
+    s['EmailRecipient'] = opts.get('EmailRecipient', EmailRecipient)
     s['Token'] = opts.get('Token', Token)
     s['Username'] = opts.get('Username', Username)
     s['Password'] = opts.get('Password', Password)
@@ -811,6 +830,29 @@ def checkShow(showDirectory):
         log("")
         count += 1
     return changes
+    
+def sendEmail(email_from, email_to, subject, body, server, port, username="", password="", secure=False, email_type='html'):
+    msg = MIMEMultipart()
+    msg['From'] = email_from
+    msg['To'] = email_to
+    msg['Subject'] = subject
+    msg['Date'] = formatdate(localtime=True)
+    msg.attach(MIMEText(body, email_type))
+    try:
+        server = smtplib.SMTP(server, port)
+        if secure:                                   #use TLS for secure connection
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        if username:
+            server.login(username, password)
+        text = msg.as_string()
+        senders = server.sendmail(email_from, email_to, text)
+        server.quit()
+        return senders
+    except Exception as e:
+        print("Error in sendEmail: " + e.message)
+    return True
 
 
 ## Main Script ############################################
@@ -1086,3 +1128,35 @@ if len(ActionHistory) > 0:
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
+
+# Email Log
+if Settings['EmailLog']:
+    try:
+        EmailContents = [] # Text of email.
+        EmailContents.append("<pre>")
+        EmailContents.append("----------------------------------------------------------------------------")
+        EmailContents.append("                Summary -- Script Completed Successfully")
+        EmailContents.append("----------------------------------------------------------------------------")
+        EmailContents.append("\n")
+        EmailContents.append("  Total File Count      " + str(FileCount))
+        EmailContents.append("  Kept Show Files       " + str(KeptCount))
+        EmailContents.append("  On Deck Files         " + str(OnDeckCount))
+        EmailContents.append("  Deleted Files         " + str(DeleteCount))
+        EmailContents.append("  Moved Files           " + str(MoveCount))
+        EmailContents.append("  Copied Files          " + str(CopyCount))
+        EmailContents.append("  Flagged Files         " + str(FlaggedCount))
+        EmailContents.append("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
+        if len(ActionHistory) > 0:
+            EmailContents.append("\n")
+            EmailContents.append("  Changed Files:")
+            for item in ActionHistory:
+                EmailContents.append("  " + str(item))
+        EmailContents.append("\n")
+        EmailContents.append("----------------------------------------------------------------------------")
+        EmailContents.append("</pre>")
+        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner.py Log", "\n".join(EmailContents), Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"], Settings["EmailPassword"], Settings["EmailServerUseTLS"])
+        log("")
+        log("Email of log file contents sent successfully.")
+    except Exception as e: 
+        print(e)
+        log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
