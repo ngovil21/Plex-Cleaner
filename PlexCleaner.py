@@ -1189,7 +1189,7 @@ if Settings['EmailLog']:
         EmailContents.append("</pre>")
         sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner.py Log", "\n".join(EmailContents), Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"], Settings["EmailPassword"], Settings["EmailServerUseTLS"])
         log("")
-        log("Email of log file contents sent successfully.")
+        log("Email of script summary sent successfully.")
     except Exception as e:
         log(e, True)
         log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
