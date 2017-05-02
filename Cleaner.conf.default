@@ -1,12 +1,18 @@
 {
-  "Host": "",
-  "Port": "",
-  "SectionList": [
-  ],
+  "Host": "127.0.0.1",
+  "Port": "32400",
+  "SectionList": [],
   "IgnoreSections": [],
   "LogFile": "",
   "LogFileMode": "",
   "trigger_rescan": false,
+  "EmailLog": false,
+  "EmailServer": "",
+  "EmailServerPort": 0,
+  "EmailServerUseTLS": false,
+  "EmailUsername": "",
+  "EmailPassword": "",
+  "EmailRecipient": "",
   "Token": "",
   "Username": "",
   "Password": "",
@@ -32,27 +38,27 @@
     "/path/to/ignore/folder2"
   ],
   "ShowPreferences": {
-      "Show 1": {
-          "maxDays": 30,
-          "action": "delete",
-          "onDeck": true,
-          "minDays": 10,
-          "location": "/path/to/folder",
-          "watched": true,
-          "episodes": 3
-        },
-        "Show 2": {
-          "maxDays": 30,
-          "action": "delete",
-          "onDeck": false,
-          "minDays": 10,
-          "location": "/path/to/folder",
-          "watched": false,
-          "episodes": 0
-        },
-        "Show 3": {
-          "action": "keep"
-        }
+    "Show 1": {
+      "onDeck": true,
+      "maxDays": 30,
+      "minDays": 10,
+      "episodes": 3,
+      "location": "/path/to/folder",
+      "action": "delete",
+      "watched": true
+    },
+    "Show 2": {
+      "onDeck": false,
+      "maxDays": 30,
+      "minDays": 10,
+      "episodes": 0,
+      "location": "/path/to/folder",
+      "action": "delete",
+      "watched": false
+    },
+    "Show 3": {
+      "action": "keep"
+    }
   },
   "MoviePreferences": {
     "action": "keep",
@@ -63,15 +69,16 @@
   },
   "Profiles": {
     "Profile 1": {
-      "episodes": 3,
-      "action": "delete",
       "onDeck": true,
-      "minDays": 10,
-      "location": "/path/to/folder",
-      "watched": true,
       "maxDays": 30,
-      "homeUsers": ""
+      "minDays": 10,
+      "homeUsers": "",
+      "episodes": 3,
+      "location": "/path/to/folder",
+      "action": "delete",
+      "watched": true
     }
   },
-  "Version": 1.93
+  "Version": 1.95,
+  "Client_ID": ""
 }
