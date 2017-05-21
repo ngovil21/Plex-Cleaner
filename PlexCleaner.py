@@ -147,6 +147,7 @@ import argparse
 from collections import OrderedDict
 import time
 import uuid
+import math
 
 try:
     import configparser as ConfigParser
@@ -161,6 +162,14 @@ try:
 except:
     import urllib2
 
+def convert_size(size_bytes):
+   if (size_bytes == 0):
+       return '0B'
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes/p, 2)
+   return '%s %s' % (s, size_name[i])
 
 def log(msg, debug=False):
     try:
@@ -363,7 +372,7 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=1, referer=None,
 
 # Returns if a file action was performed (move, copy, delete)
 def performAction(file, action, media_id=0, location=""):
-    global DeleteCount, MoveCount, CopyCount, FlaggedCount
+    global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
     file = getLocalPath(file)
     action = action.lower()
@@ -380,9 +389,11 @@ def performAction(file, action, media_id=0, location=""):
             return False
         log("**[FLAGGED] " + file)
         FlaggedCount += 1
+        FlaggedSize += os.stat(file).st_size
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
         try:
+            DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
             req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
             req.get_method = lambda: 'DELETE'
@@ -405,6 +416,7 @@ def performAction(file, action, media_id=0, location=""):
     if action.startswith('c'):
         try:
             for f in filelist:
+                CopySize += os.stat(file).st_size
                 shutil.copy(os.path.realpath(f), location)
                 log("**[COPIED] " + file)
             CopyCount += 1
@@ -415,6 +427,7 @@ def performAction(file, action, media_id=0, location=""):
     elif action.startswith('m'):
         for f in filelist:
             try:
+                MoveSize += os.stat(f).st_size
                 os.utime(os.path.realpath(f), None)
                 shutil.move(os.path.realpath(f), location)
                 log("**[MOVED] " + f)
@@ -428,6 +441,7 @@ def performAction(file, action, media_id=0, location=""):
     elif action.startswith('d'):
         for deleteFile in filelist:
             try:
+                DeleteSize += os.stat(file).st_size
                 os.remove(deleteFile)
                 log("**[DELETED] " + deleteFile)
             except Exception as e:
@@ -438,6 +452,7 @@ def performAction(file, action, media_id=0, location=""):
     else:
         log("[FLAGGED] " + file)
         FlaggedCount += 1
+        FlaggedSize += os.stat(file).st_size
         return False
 
 
@@ -568,6 +583,7 @@ def checkUsersWatched(users, media_id, progressAsWatched):
 def checkMovies(doc, section):
     global FileCount
     global KeptCount
+    global KeptSize
 
     changes = 0
     for VideoNode in doc.getElementsByTagName("Video"):
@@ -628,6 +644,7 @@ def checkMovies(doc, section):
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
+            KeptSize += os.stat(m['file']).st_size
         log("")
     if Settings.get('cleanup_movie_folders', False):
         log("Cleaning up orphaned folders less than " + str(minimum_folder_size) + "MB in Section " + section)
@@ -684,6 +701,7 @@ def cleanUpFolders(section, max_size):
 # Shows have a season pages that need to be navigated
 def checkShow(showDirectory):
     global KeptCount
+    global KeptSize
     global FileCount
     # Parse all of the episode information from the season pages
     show_settings = default_settings.copy()
@@ -795,9 +813,11 @@ def checkShow(showDirectory):
             else:
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
+                KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
+            KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         log("")
         count += 1
     return changes
@@ -958,11 +978,16 @@ log("Port: " + Settings['Port'])
 
 FileCount = 0
 DeleteCount = 0
+DeleteSize = 0
 MoveCount = 0
+MoveSize = 0
 CopyCount = 0
-FlaggedCount = 0
+CopySize = 0
 OnDeckCount = 0
+FlaggedCount = 0
+FlaggedSize = 0
 KeptCount = 0
+KeptSize = 0
 
 doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
 
@@ -1022,13 +1047,13 @@ log("---------------------------------------------------------------------------
 log("                Summary -- Script Completed Successfully")
 log("----------------------------------------------------------------------------")
 log("")
-log("  Total File Count      " + str(FileCount))
-log("  Kept Show Files       " + str(KeptCount))
+log("  Total File Count      " + str(FileCount) + " (" + convert_size(KeptSize+FlaggedSize) + ")")
+log("  Kept Show Files       " + str(KeptCount) + " (" + convert_size(KeptSize) + ")")
 log("  On Deck Files         " + str(OnDeckCount))
-log("  Deleted Files         " + str(DeleteCount))
-log("  Moved Files           " + str(MoveCount))
-log("  Copied Files          " + str(CopyCount))
-log("  Flagged Files         " + str(FlaggedCount))
+log("  Deleted Files         " + str(DeleteCount) + " (" + convert_size(DeleteSize) + ")")
+log("  Moved Files           " + str(MoveCount) + " (" + convert_size(MoveSize) + ")")
+log("  Copied Files          " + str(CopyCount) + " (" + convert_size(CopySize) + ")")
+log("  Flagged Files         " + str(FlaggedCount) + " (" + convert_size(FlaggedSize) + ")")
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 log("")
 log("----------------------------------------------------------------------------")
