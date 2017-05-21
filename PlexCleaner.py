@@ -434,7 +434,7 @@ def performAction(file, action, media_id=0, location=""):
     if not os.path.isfile(file):
         log("[NOT FOUND] " + file)
         return False
-    if similar_files:
+    if Settings['similar_files']:
         regex = re.sub("\[", "[[]", os.path.splitext(file)[0]) + "*"
         log("Finding files similar to: " + regex)
         filelist = glob.glob(regex)
