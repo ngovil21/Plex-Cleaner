@@ -1190,7 +1190,7 @@ log("---------------------------------------------------------------------------
 log("----------------------------------------------------------------------------")
 
 # Email Log
-if Settings['EmailLog'] and (len(ActionHistory) > 0 or email_empty_log):        #Email log, but by default do not email log if no actions performed
+if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or email_empty_log):        #Email log, but by default do not email log if no actions performed
     try:
         EmailContents = [] # Text of email.
         EmailContents.append("<pre>")
