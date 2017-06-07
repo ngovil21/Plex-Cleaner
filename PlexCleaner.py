@@ -1172,7 +1172,7 @@ log("  Kept Show Files       " + str(KeptCount) + (" (" + convert_size(KeptSize)
 log("  On Deck Files         " + str(OnDeckCount))
 log("  Deleted Files         " + str(DeleteCount) + (" (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
 log("  Moved Files           " + str(MoveCount) + (" (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
-log("  Copied Files          " + str(CopyCount) + (" (" + convert_size(CopySize) + ")" if show_size and CopySize > 0else ""))
+log("  Copied Files          " + str(CopyCount) + (" (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
 log("  Flagged Files         " + str(FlaggedCount) + (" (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 if len(ActionHistory) > 0:
