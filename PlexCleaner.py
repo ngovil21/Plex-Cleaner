@@ -1198,13 +1198,19 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or emai
         EmailContents.append("                Summary -- Script Completed")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("\n")
-        EmailContents.append("  Total File Count      " + str(FileCount))
-        EmailContents.append("  Kept Show Files       " + str(KeptCount))
+        EmailContents.append("  Total File Count      " + str(FileCount) + (
+        " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
+        EmailContents.append("  Kept Show Files       " + str(KeptCount) + (
+        " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
         EmailContents.append("  On Deck Files         " + str(OnDeckCount))
-        EmailContents.append("  Deleted Files         " + str(DeleteCount))
-        EmailContents.append("  Moved Files           " + str(MoveCount))
-        EmailContents.append("  Copied Files          " + str(CopyCount))
-        EmailContents.append("  Flagged Files         " + str(FlaggedCount))
+        EmailContents.append("  Deleted Files         " + str(DeleteCount) + (
+        " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
+        EmailContents.append("  Moved Files           " + str(MoveCount) + (
+        " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
+        EmailContents.append("  Copied Files          " + str(CopyCount) + (
+        " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
+        EmailContents.append("  Flagged Files         " + str(FlaggedCount) + (
+        " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
         EmailContents.append("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
         if len(ActionHistory) > 0:
             EmailContents.append("\n")
@@ -1227,4 +1233,9 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or emai
         log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
         if debug_mode:
             log(str(traceback.format_exc()))
+
+log("")
+
+
+
 
