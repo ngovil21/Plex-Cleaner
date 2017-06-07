@@ -909,6 +909,8 @@ parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reloa
                     help="Reload system with default encoding set to utf-8")
 parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
                     help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
+parser.add_argument("--show_size", "-show_size", "--size", "-size", help="Show total size of files changed", action="store_true", default=False)
+parser.add_argument("--always_email", "-always_email", "--email", "-email", help="Always email log, even if empty", action="store_true", default=False)
 # parser.add_argument("--config_edit", "-config_edit", action="store_true",
 #                     help="Prompts for editing the config from the commandline")
 
@@ -916,6 +918,8 @@ args = parser.parse_args()
 
 test = args.test
 debug_mode = args.debug
+email_empty_log = args.always_email
+show_size = args.show_size
 
 if args.reload_encoding:
     # reload sys to set default encoding to utf-8
@@ -1166,10 +1170,10 @@ log("")
 log("  Total File Count      " + str(FileCount) + " (" + convert_size(KeptSize+FlaggedSize) + ")")
 log("  Kept Show Files       " + str(KeptCount) + " (" + convert_size(KeptSize) + ")")
 log("  On Deck Files         " + str(OnDeckCount))
-log("  Deleted Files         " + str(DeleteCount) + " (" + convert_size(DeleteSize) + ")")
-log("  Moved Files           " + str(MoveCount) + " (" + convert_size(MoveSize) + ")")
-log("  Copied Files          " + str(CopyCount) + " (" + convert_size(CopySize) + ")")
-log("  Flagged Files         " + str(FlaggedCount) + " (" + convert_size(FlaggedSize) + ")")
+log("  Deleted Files         " + str(DeleteCount) + (" (" + convert_size(DeleteSize) + ")" if show_size else ""))
+log("  Moved Files           " + str(MoveCount) + (" (" + convert_size(MoveSize) + ")" if show_size else ""))
+log("  Copied Files          " + str(CopyCount) + (" (" + convert_size(CopySize) + ")" if show_size else ""))
+log("  Flagged Files         " + str(FlaggedCount) + (" (" + convert_size(FlaggedSize) + ")" if show_size else ""))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 if len(ActionHistory) > 0:
     log("")
@@ -1186,7 +1190,7 @@ log("---------------------------------------------------------------------------
 log("----------------------------------------------------------------------------")
 
 # Email Log
-if Settings['EmailLog']:
+if Settings['EmailLog'] and (len(ActionHistory) > 0 or email_empty_log):        #Email log, but by default do not email log if no actions performed
     try:
         EmailContents = [] # Text of email.
         EmailContents.append("<pre>")
@@ -1215,7 +1219,7 @@ if Settings['EmailLog']:
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
-        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner.py Log", "\n".join(EmailContents), Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"], Settings["EmailPassword"], Settings["EmailServerUseTLS"])
+        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents), Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"], Settings["EmailPassword"], Settings["EmailServerUseTLS"])
         log("")
         log("Email of script summary sent successfully.")
     except Exception as e:
