@@ -14,6 +14,7 @@
 # Version 1.95 - Added the ability to cleanup old PlexCleaner devices and reload encoding as commandline arguments
 # Version 1.96 - Modified files are printed at the end of the log as well now.
 # Version 2.0 - Added ability to email log summary thanks to stevenflesch
+# Version 2.01 - Email log only when action completed by default, calculate sizes of files changed
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
