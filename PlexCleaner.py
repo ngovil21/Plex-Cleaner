@@ -412,7 +412,8 @@ def performAction(file, action, media_id=0, location=""):
     global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
     try:
-        file = file.decode('utf-8')
+        if sys.version < '3':
+            file = file.decode('utf-8')
     except:
         if debug_mode:
             log(str(traceback.format_exc()))
