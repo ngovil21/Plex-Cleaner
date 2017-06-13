@@ -15,6 +15,7 @@
 # Version 1.96 - Modified files are printed at the end of the log as well now.
 # Version 2.0 - Added ability to email log summary thanks to stevenflesch
 # Version 2.01 - Email log only when action completed by default, calculate sizes of files changed
+
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
 Config = ""  # Location of a config file to load options from, can be specified in the commandline with --config [CONFIG_FILE]
@@ -410,6 +411,13 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
 def performAction(file, action, media_id=0, location=""):
     global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
+    try:
+        if sys.version < '3':
+            file = file.decode('utf-8')
+    except:
+        if debug_mode:
+            log(str(traceback.format_exc()))
+
     file = getLocalPath(file)
     action = action.lower()
     if action.startswith('k'):  # Keep file
@@ -689,7 +697,8 @@ def checkMovies(doc, section):
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
-            KeptSize += os.stat(m['file']).st_size
+            if os.path.isfile(m['file']):
+                KeptSize += os.stat(m['file']).st_size
         log("")
     if Settings.get('cleanup_movie_folders', False):
         log("Cleaning up orphaned folders less than " + str(minimum_folder_size) + "MB in Section " + section)
@@ -858,11 +867,13 @@ def checkShow(showDirectory):
             else:
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
-                KeptSize += os.stat(getLocalPath(ep['file'])).st_size
+                if os.path.isfile(m['file']):
+                    KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
-            KeptSize += os.stat(getLocalPath(ep['file'])).st_size
+            if os.path.isfile(m['file']):
+                KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         log("")
         count += 1
     return changes
@@ -1180,12 +1191,12 @@ if len(ActionHistory) > 0:
     log("")
     log("  Changed Files:")
     for item in ActionHistory:
-        log("  " + str(item))
+        log("  " + item)
 if len(ErrorLog) > 0:
     log("")
     log("  Errors:")
     for item in ErrorLog:
-        log("  " + str(item))
+        log("  " + item)
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
@@ -1217,12 +1228,12 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or emai
             EmailContents.append("\n")
             EmailContents.append("  Changed Files:")
             for item in ActionHistory:
-                EmailContents.append("  " + str(item))
+                EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
         if len(ErrorLog) > 0:
             EmailContents.append("\n")
             EmailContents.append(" Errors:")
             for item in ErrorLog:
-                EmailContents.append("  " + str(item))
+                EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
