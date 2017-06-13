@@ -1228,12 +1228,12 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or emai
             EmailContents.append("\n")
             EmailContents.append("  Changed Files:")
             for item in ActionHistory:
-                EmailContents.append("  " + item)
+                EmailContents.append("  " + item.encode('utf-8', 'replace').decode('utf-8'))
         if len(ErrorLog) > 0:
             EmailContents.append("\n")
             EmailContents.append(" Errors:")
             for item in ErrorLog:
-                EmailContents.append("  " + item)
+                EmailContents.append("  " + item.encode('utf-8', 'replace').decode('utf-8'))
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
