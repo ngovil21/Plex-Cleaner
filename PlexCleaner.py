@@ -1190,12 +1190,12 @@ if len(ActionHistory) > 0:
     log("")
     log("  Changed Files:")
     for item in ActionHistory:
-        log("  " + str(item))
+        log("  " + item)
 if len(ErrorLog) > 0:
     log("")
     log("  Errors:")
     for item in ErrorLog:
-        log("  " + str(item))
+        log("  " + item)
 log("")
 log("----------------------------------------------------------------------------")
 log("----------------------------------------------------------------------------")
