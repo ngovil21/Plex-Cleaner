@@ -867,12 +867,12 @@ def checkShow(showDirectory):
             else:
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
-                if os.path.isfile(m['file']):
+                if os.path.isfile(ep['file']):
                     KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
-            if os.path.isfile(m['file']):
+            if os.path.isfile(ep['file']):
                 KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         log("")
         count += 1
