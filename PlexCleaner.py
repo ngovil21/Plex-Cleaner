@@ -411,6 +411,12 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
 def performAction(file, action, media_id=0, location=""):
     global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
+    try:
+        file = file.encode('utf-8')
+    except:
+        if debug_mode:
+            log(str(traceback.format_exc()))
+
     file = getLocalPath(file)
     action = action.lower()
     if action.startswith('k'):  # Keep file
@@ -690,7 +696,8 @@ def checkMovies(doc, section):
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
-            KeptSize += os.stat(m['file']).st_size
+            if os.path.isfile(m['file']):
+                KeptSize += os.stat(m['file']).st_size
         log("")
     if Settings.get('cleanup_movie_folders', False):
         log("Cleaning up orphaned folders less than " + str(minimum_folder_size) + "MB in Section " + section)
@@ -859,7 +866,8 @@ def checkShow(showDirectory):
             else:
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
-                KeptSize += os.stat(getLocalPath(ep['file'])).st_size
+                if os.path.isfile(m['file']):
+                    KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
