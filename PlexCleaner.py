@@ -428,7 +428,7 @@ def performAction(file, action, media_id=0, location=""):
             log("[IGNORED] " + file)
             return False
     if test or action.startswith('f'):  # Test file or Flag file
-        if os.path.isfile(file):
+        if show_size and os.path.isfile(file):
             FlaggedSize += os.stat(file).st_size
         elif not Settings['plex_delete']:
             log("[NOT FOUND] " + file)
@@ -439,7 +439,7 @@ def performAction(file, action, media_id=0, location=""):
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
         try:
-            if os.path.isfile(file):                     #If using plex_delete, check if we can access file
+            if show_size and os.path.isfile(file):                     #If using plex_delete, check if we can access file
                 DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
             req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
@@ -467,7 +467,8 @@ def performAction(file, action, media_id=0, location=""):
     if action.startswith('c'):
         try:
             for f in filelist:
-                CopySize += os.stat(f).st_size
+                if show_size:
+                    CopySize += os.stat(f).st_size
                 shutil.copy(os.path.realpath(f), location)
                 log("**[COPIED] " + file)
             ActionHistory.append("[COPIED] " + filelist[0])
@@ -479,7 +480,8 @@ def performAction(file, action, media_id=0, location=""):
     elif action.startswith('m'):
         for f in filelist:
             try:
-                MoveSize += os.stat(f).st_size
+                if show_size:
+                    MoveSize += os.stat(f).st_size
                 os.utime(os.path.realpath(f), None)
                 shutil.move(os.path.realpath(f), location)
                 log("**[MOVED] " + f)
@@ -494,7 +496,8 @@ def performAction(file, action, media_id=0, location=""):
     elif action.startswith('d'):
         for f in filelist:
             try:
-                DeleteSize += os.stat(f).st_size
+                if show_size:
+                    DeleteSize += os.stat(f).st_size
                 os.remove(f)
                 log("**[DELETED] " + f)
             except Exception as e:
@@ -507,7 +510,7 @@ def performAction(file, action, media_id=0, location=""):
         log("[FLAGGED] " + file)
         ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
-        if os.path.isfile(file):
+        if show_size and os.path.isfile(file):
             FlaggedSize += os.stat(file).st_size
         return False
 
@@ -700,7 +703,7 @@ def checkMovies(doc, section):
         else:
             log('[Keeping] ' + m['file'])
             KeptCount += 1
-            if os.path.isfile(m['file']):
+            if show_size and os.path.isfile(m['file']):
                 KeptSize += os.stat(m['file']).st_size
         log("")
     if Settings.get('cleanup_movie_folders', False):
@@ -870,12 +873,12 @@ def checkShow(showDirectory):
             else:
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
-                if os.path.isfile(ep['file']):
+                if show_size and os.path.isfile(ep['file']):
                     KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
-            if os.path.isfile(ep['file']):
+            if show_size and os.path.isfile(ep['file']):
                 KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         log("")
         count += 1
