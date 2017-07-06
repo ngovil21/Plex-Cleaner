@@ -428,17 +428,19 @@ def performAction(file, action, media_id=0, location=""):
             log("[IGNORED] " + file)
             return False
     if test or action.startswith('f'):  # Test file or Flag file
-        if not os.path.isfile(file):
+        if os.path.isfile(file):
+            FlaggedSize += os.stat(file).st_size
+        elif not Settings['plex_delete']:
             log("[NOT FOUND] " + file)
             return False
         log("**[FLAGGED] " + file)
         ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
-        FlaggedSize += os.stat(file).st_size
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
         try:
-            DeleteSize += os.stat(file).st_size
+            if os.path.isfile(file):                     #If using plex_delete, check if we can access file
+                DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
             req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
             req.get_method = lambda: 'DELETE'
@@ -465,7 +467,7 @@ def performAction(file, action, media_id=0, location=""):
     if action.startswith('c'):
         try:
             for f in filelist:
-                CopySize += os.stat(file).st_size
+                CopySize += os.stat(f).st_size
                 shutil.copy(os.path.realpath(f), location)
                 log("**[COPIED] " + file)
             ActionHistory.append("[COPIED] " + filelist[0])
@@ -490,11 +492,11 @@ def performAction(file, action, media_id=0, location=""):
         MoveCount += 1
         return True
     elif action.startswith('d'):
-        for deleteFile in filelist:
+        for f in filelist:
             try:
-                DeleteSize += os.stat(file).st_size
-                os.remove(deleteFile)
-                log("**[DELETED] " + deleteFile)
+                DeleteSize += os.stat(f).st_size
+                os.remove(f)
+                log("**[DELETED] " + f)
             except Exception as e:
                 log("Error deleting file: %s" % e, True)
                 continue
@@ -505,7 +507,8 @@ def performAction(file, action, media_id=0, location=""):
         log("[FLAGGED] " + file)
         ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
-        FlaggedSize += os.stat(file).st_size
+        if os.path.isfile(file):
+            FlaggedSize += os.stat(file).st_size
         return False
 
 
