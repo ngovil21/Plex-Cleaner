@@ -870,11 +870,15 @@ def checkShow(showDirectory):
                                  location=show_settings['location']):
                     changes += 1
             else:
+                if debug_mode:
+                    print("Watched status is %s and compare day is %d and deck status is " % (str(checkWatched), ep['compareDay'], str(not checkDeck)))
                 log('[Keeping] ' + getLocalPath(ep['file']))
                 KeptCount += 1
                 if show_size and os.path.isfile(ep['file']):
                     KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
+            if debug_mode:
+                print("Episode is %d and max days is %s" % (len(episodes) - k, str(ep['compareDay'] > show_settings['maxDays'] > 0)))
             log('[Keeping] ' + getLocalPath(ep['file']))
             KeptCount += 1
             if show_size and os.path.isfile(ep['file']):
