@@ -421,6 +421,7 @@ def performAction(file, action, media_id=0, location=""):
     file = getLocalPath(file)
     action = action.lower()
     if action.startswith('k'):  # Keep file
+        log("[KEEPING] " + file)
         return False
     for path in Settings['default_ignoreFolders']:
         if file.startswith(path):
@@ -701,7 +702,7 @@ def checkMovies(doc, section):
                              location=movie_settings['location']):
                 changes += 1
         else:
-            log('[Keeping] ' + m['file'])
+            log('[KEEPING] ' + m['file'])
             KeptCount += 1
             if show_size and os.path.isfile(m['file']):
                 KeptSize += os.stat(m['file']).st_size
@@ -788,7 +789,7 @@ def checkShow(showDirectory):
             break
     # if action is keep then skip checking
     if show_settings['action'].startswith('k'):  # If keeping on show just skip checking
-        log("[Keeping] " + show_name)
+        log("[KEEPING] " + show_name)
         log("")
         return 0
     check_users = []
@@ -872,14 +873,14 @@ def checkShow(showDirectory):
             else:
                 if debug_mode:
                     print("Watched status is %s and compare day is %d and deck status is " % (str(checkWatched), ep['compareDay'], str(not checkDeck)))
-                log('[Keeping] ' + getLocalPath(ep['file']))
+                log('[KEEPING] ' + getLocalPath(ep['file']))
                 KeptCount += 1
                 if show_size and os.path.isfile(ep['file']):
                     KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             if debug_mode:
                 print("Episode is %d and max days is %s" % (len(episodes) - k, str(ep['compareDay'] > show_settings['maxDays'] > 0)))
-            log('[Keeping] ' + getLocalPath(ep['file']))
+            log('[KEEPING] ' + getLocalPath(ep['file']))
             KeptCount += 1
             if show_size and os.path.isfile(ep['file']):
                 KeptSize += os.stat(getLocalPath(ep['file'])).st_size
