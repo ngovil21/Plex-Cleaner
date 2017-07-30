@@ -880,6 +880,7 @@ def checkShow(showDirectory):
         else:
             if debug_mode:
                 print("Episode is %d and max days is %s" % (len(episodes) - k, str(ep['compareDay'] > show_settings['maxDays'] > 0)))
+                print(str(k))
             log('[KEEPING] ' + getLocalPath(ep['file']))
             KeptCount += 1
             if show_size and os.path.isfile(ep['file']):
