@@ -856,9 +856,8 @@ def checkShow(showDirectory):
             log("%s - S%sxE%s - %s | Viewed: %d | Days Since Added: %d | On Deck: %s" % (
                 show_name, ep['season'], ep['episode'], ep['title'], ep['view'], ep['compareDay'], onDeck))
             checkWatched = True
-        if not (not ((len(episodes) - k) > show_settings['episodes']) and not (
-                        ep['compareDay'] > show_settings[
-                        'maxDays'] > 0)):  # if we have more episodes, then check if we can delete the file
+        # if we have more episodes or it's been longer than the max days, then check if we can delete the file
+        if ((len(episodes) - k) > show_settings['episodes']) or (ep['compareDay'] > show_settings['maxDays'] > 0):
             checkDeck = False
             if show_settings['onDeck']:
                 checkDeck = onDeck or (k + 1 < len(episodes) and CheckOnDeck(episodes[k + 1]['media_id']))
