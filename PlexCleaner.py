@@ -846,6 +846,7 @@ def checkShow(showDirectory):
             FileCount += 1
     count = 0
     changes = 0
+    episodes = sorted(episodes, key=lambda z: (z['season'], z['episode']))
     for k in range(0, len(episodes)):
         ep = episodes[k]
         onDeck = CheckOnDeck(ep['media_id'])
