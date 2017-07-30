@@ -872,7 +872,7 @@ def checkShow(showDirectory):
                     changes += 1
             else:
                 if debug_mode:
-                    print("Watched status is %s and compare day is %d and deck status is " % (str(checkWatched), ep['compareDay'], str(not checkDeck)))
+                    print("Watched status is %s and compare day is %d and deck status is %s" % (str(checkWatched), ep['compareDay'], str(not checkDeck)))
                 log('[KEEPING] ' + getLocalPath(ep['file']))
                 KeptCount += 1
                 if show_size and os.path.isfile(ep['file']):
