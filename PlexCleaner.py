@@ -1040,7 +1040,7 @@ if Settings['Token'] == "":
         if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
-            log("Token: " + Settings['Token'], True)
+            print("Token: " + Settings['Token'])       #print token, do not save in log file
             login = True
 
 if args.clean_devices:
