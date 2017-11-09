@@ -164,18 +164,16 @@ import math
 from time import sleep
 import traceback
 
-try:    #Python2 email imports
+try:  # Python2 email imports
     from email.MIMEMultipart import MIMEMultipart
     from email.MIMEText import MIMEText
     from email.Utils import formatdate
-except:  #Python3 email imports
+except:  # Python3 email imports
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
     from email.utils import formatdate
 
-
 import smtplib
-
 
 try:
     import configparser as ConfigParser
@@ -190,14 +188,16 @@ try:
 except:
     import urllib2
 
+
 def convert_size(size_bytes):
-   if (size_bytes == 0):
-       return '0B'
-   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-   i = int(math.floor(math.log(size_bytes, 1024)))
-   p = math.pow(1024, i)
-   s = round(size_bytes/p, 2)
-   return '%s %s' % (s, size_name[i])
+    if (size_bytes == 0):
+        return '0B'
+    size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return '%s %s' % (s, size_name[i])
+
 
 def log(msg, debug=False):
     try:
@@ -216,10 +216,10 @@ def log(msg, debug=False):
 
 def getToken(user, passw):
     try:
-        from urllib import urlencode            #Python2
+        from urllib import urlencode  # Python2
     except:
         import urllib
-        from urllib.parse import urlencode      #Python3
+        from urllib.parse import urlencode  # Python3
 
     data = urlencode({b"user[login]": user, b"user[password]": passw}).encode("utf-8")
     URL = "https://plex.tv/users/sign_in.json"
@@ -285,6 +285,7 @@ def getAccessToken(token):
 
 
 def getPlexHomeUserTokens():
+    global home_user_tokens
     homeUsers = getURLX("https://plex.tv/api/home/users")
     user_tokens = {}
     if homeUsers:
@@ -292,14 +293,15 @@ def getPlexHomeUserTokens():
         user_tokens = {}
         for user in homeUsers.getElementsByTagName("User"):
             user_id = user.getAttribute("id")
-            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch", data=b'')  # Empty byte data to send a 'POST'
+            switch_page = getURLX("https://plex.tv/api/home/users/" + user_id + "/switch",
+                                  data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
                 username = user_element.getAttribute("title").lower()
                 home_token = user_element.getAttribute('authenticationToken')
                 if home_token:
                     user_tokens[username] = getAccessToken(home_token)
-        return user_tokens
+        home_user_tokens = user_tokens
     else:
         print("Cannot load page!")
         return {}
@@ -440,7 +442,7 @@ def performAction(file, action, media_id=0, location=""):
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
         try:
-            if show_size and os.path.isfile(file):                     #If using plex_delete, check if we can access file
+            if show_size and os.path.isfile(file):  # If using plex_delete, check if we can access file
                 DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
             req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
@@ -599,44 +601,47 @@ def getMediaInfo(VideoNode):
                     'progress': progress}
 
 
-def checkUsersWatched(users, media_id, progressAsWatched):
-    global home_user_tokens
+def checkUsersWatched(users, media_id, progress_as_watched):
     if not home_user_tokens:
-        home_user_tokens = getPlexHomeUserTokens()
+        getPlexHomeUserTokens()
     compareDay = -1
     if 'all' in users:
         users = home_user_tokens.keys()
     for u in users:
         if u in home_user_tokens:
-            user_media_page = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + media_id,
-                                      token=home_user_tokens[u])
-            if user_media_page:
-                video = user_media_page.getElementsByTagName("Video")[0]
-                videoProgress = 0
-                if video.hasAttribute('viewOffset') and video.hasAttribute('duration'):
-                    videoProgress = int(video.getAttribute('viewOffset')) * 100 / int(video.getAttribute('duration'))
-                if (video.hasAttribute('viewCount') and int(video.getAttribute('viewCount')) > 0) or (
-                                progressAsWatched > 0 and videoProgress > progressAsWatched):
-                    lastViewedAt = video.getAttribute('lastViewedAt')
-                    if not lastViewedAt or lastViewedAt == '' or lastViewedAt == '0':
-                        DaysSinceVideoLastViewed = 0
-                    else:
-                        d1 = datetime.datetime.today()
-                        d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
-                        DaysSinceVideoLastViewed = (d1 - d2).days
-                    if compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
-                        compareDay = DaysSinceVideoLastViewed
-                else:  # Video has not been seen by this user, return -1 for unseen
-                    if test:
-                        log(u + " has not seen the video: " + media_id)
-                    return -1
-            else:
-                print("Not Found!")
-                return -1
+            DaysSinceVideoLastViewed = checkUserWatched(home_user_tokens[u], media_id, progress_as_watched)
+        elif u.startswith("$"):
+            DaysSinceVideoLastViewed = checkUserWatched(u[1:], media_id, progress_as_watched)
         else:
-            log("Do not have the token for " + u + ". Please check spelling or report error on forums.")
+            log("Do not have the token for " + u + ". Please check spelling or token.")
             return -1
+        if DaysSinceVideoLastViewed == -1:
+            log(u + " has not seen video " + media_id)
+            return -1
+        elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
+            compareDay = DaysSinceVideoLastViewed
     return compareDay
+
+
+def checkUserWatched(token, media_id, progress_as_watched):
+    user_media_page = getURLX(Settings['Host'] + ":" + Settings['Port'] + '/library/metadata/' + media_id,
+                              token=token)
+    if user_media_page:
+        video = user_media_page.getElementsByTagName("Video")[0]
+        videoProgress = 0
+        if video.hasAttribute('viewOffset') and video.hasAttribute('duration'):
+            videoProgress = int(video.getAttribute('viewOffset')) * 100 / int(video.getAttribute('duration'))
+        if (video.hasAttribute('viewCount') and int(video.getAttribute('viewCount')) > 0) or (
+                        progress_as_watched > 0 and videoProgress > progress_as_watched):
+            lastViewedAt = video.getAttribute('lastViewedAt')
+            if not lastViewedAt or lastViewedAt == '' or lastViewedAt == '0':
+                return 0
+            else:
+                d1 = datetime.datetime.today()
+                d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
+                return (d1 - d2).days
+        else:  # Video has not been seen by this user, return -1 for unseen
+            return -1
 
 
 # Movies are all listed on one page
@@ -846,7 +851,7 @@ def checkShow(showDirectory):
             FileCount += 1
     count = 0
     changes = 0
-    #Sort episodes by season and episode
+    # Sort episodes by season and episode
     episodes = sorted(episodes, key=lambda z: (z['season'], z['episode']))
     for k in range(0, len(episodes)):
         ep = episodes[k]
@@ -874,14 +879,16 @@ def checkShow(showDirectory):
                     changes += 1
             else:
                 if debug_mode:
-                    print("Watched status is %s and compare day is %d and deck status is %s" % (str(checkWatched), ep['compareDay'], str(not checkDeck)))
+                    print("Watched status is %s and compare day is %d and deck status is %s" % (
+                    str(checkWatched), ep['compareDay'], str(not checkDeck)))
                 log('[KEEPING] ' + getLocalPath(ep['file']))
                 KeptCount += 1
                 if show_size and os.path.isfile(ep['file']):
                     KeptSize += os.stat(getLocalPath(ep['file'])).st_size
         else:
             if debug_mode:
-                print("Episode is %d and max days is %s" % (len(episodes) - k, str(ep['compareDay'] > show_settings['maxDays'] > 0)))
+                print("Episode is %d and max days is %s" % (
+                len(episodes) - k, str(ep['compareDay'] > show_settings['maxDays'] > 0)))
                 print(str(k))
             log('[KEEPING] ' + getLocalPath(ep['file']))
             KeptCount += 1
@@ -890,8 +897,10 @@ def checkShow(showDirectory):
         log("")
         count += 1
     return changes
-    
-def sendEmail(email_from, email_to, subject, body, server, port, username="", password="", secure=False, email_type='html'):
+
+
+def sendEmail(email_from, email_to, subject, body, server, port, username="", password="", secure=False,
+              email_type='html'):
     msg = MIMEMultipart()
     msg['From'] = email_from
     msg['To'] = email_to
@@ -900,7 +909,7 @@ def sendEmail(email_from, email_to, subject, body, server, port, username="", pa
     msg.attach(MIMEText(body, email_type))
     try:
         server = smtplib.SMTP(server, port)
-        if secure:                                   #use TLS for secure connection
+        if secure:  # use TLS for secure connection
             server.ehlo()
             server.starttls()
             server.ehlo()
@@ -934,8 +943,10 @@ parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reloa
                     help="Reload system with default encoding set to utf-8")
 parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
                     help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
-parser.add_argument("--show_size", "-show_size", "--size", "-size", help="Show total size of files changed", action="store_true", default=False)
-parser.add_argument("--always_email", "-always_email", "--email", "-email", help="Always email log, even if empty", action="store_true", default=False)
+parser.add_argument("--show_size", "-show_size", "--size", "-size", help="Show total size of files changed",
+                    action="store_true", default=False)
+parser.add_argument("--always_email", "-always_email", "--email", "-email", help="Always email log, even if empty",
+                    action="store_true", default=False)
 # parser.add_argument("--config_edit", "-config_edit", action="store_true",
 #                     help="Prompts for editing the config from the commandline")
 
@@ -1040,7 +1051,7 @@ if Settings['Token'] == "":
         if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
-            print("Token: " + Settings['Token'])       #print token, do not save in log file
+            print("Token: " + Settings['Token'])  # print token, do not save in log file
             login = True
 
 if args.clean_devices:
@@ -1192,13 +1203,19 @@ log("---------------------------------------------------------------------------
 log("                Summary -- Script Completed")
 log("----------------------------------------------------------------------------")
 log("")
-log("  Total File Count      " + str(FileCount) + (" (" + convert_size(KeptSize+FlaggedSize) + ")" if show_size and KeptSize+FlaggedSize > 0 else ""))
-log("  Kept Show Files       " + str(KeptCount) + (" (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
+log("  Total File Count      " + str(FileCount) + (
+" (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
+log("  Kept Show Files       " + str(KeptCount) + (
+" (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
 log("  On Deck Files         " + str(OnDeckCount))
-log("  Deleted Files         " + str(DeleteCount) + (" (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
-log("  Moved Files           " + str(MoveCount) + (" (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
-log("  Copied Files          " + str(CopyCount) + (" (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
-log("  Flagged Files         " + str(FlaggedCount) + (" (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
+log("  Deleted Files         " + str(DeleteCount) + (
+" (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
+log("  Moved Files           " + str(MoveCount) + (
+" (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
+log("  Copied Files          " + str(CopyCount) + (
+" (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
+log("  Flagged Files         " + str(FlaggedCount) + (
+" (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
 log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
 if len(ActionHistory) > 0:
     log("")
@@ -1215,27 +1232,28 @@ log("---------------------------------------------------------------------------
 log("----------------------------------------------------------------------------")
 
 # Email Log
-if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or email_empty_log):        #Email log, but by default do not email log if no actions performed
+if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(
+        ErrorLog) > 0 or email_empty_log):  # Email log, but by default do not email log if no actions performed
     try:
-        EmailContents = [] # Text of email.
+        EmailContents = []  # Text of email.
         EmailContents.append("<pre>")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("                Summary -- Script Completed")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("\n")
         EmailContents.append("  Total File Count      " + str(FileCount) + (
-        " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
+            " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
         EmailContents.append("  Kept Show Files       " + str(KeptCount) + (
-        " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
+            " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
         EmailContents.append("  On Deck Files         " + str(OnDeckCount))
         EmailContents.append("  Deleted Files         " + str(DeleteCount) + (
-        " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
+            " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
         EmailContents.append("  Moved Files           " + str(MoveCount) + (
-        " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
+            " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
         EmailContents.append("  Copied Files          " + str(CopyCount) + (
-        " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
+            " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
         EmailContents.append("  Flagged Files         " + str(FlaggedCount) + (
-        " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
+            " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
         EmailContents.append("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
         if len(ActionHistory) > 0:
             EmailContents.append("\n")
@@ -1250,17 +1268,16 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(ErrorLog) > 0 or emai
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
-        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents), Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"], Settings["EmailPassword"], Settings["EmailServerUseTLS"])
+        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
+                  Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"],
+                  Settings["EmailPassword"], Settings["EmailServerUseTLS"])
         log("")
         log("Email of script summary sent successfully.")
     except Exception as e:
         log(e, True)
-        log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
+        log(
+            "Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
         if debug_mode:
             log(str(traceback.format_exc()))
 
 log("")
-
-
-
-
