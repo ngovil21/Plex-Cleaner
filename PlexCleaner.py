@@ -410,7 +410,7 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
 
 
 # Returns if a file action was performed (move, copy, delete)
-def performAction(file, action, media_id=0, location=""):
+def performAction(file, action, media_id=0, location="", parentFolder=None):
     global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
     try:
@@ -605,7 +605,8 @@ def checkUsersWatched(users, media_id, progress_as_watched):
     if not home_user_tokens:
         getPlexHomeUserTokens()
     compareDay = -1
-    if 'all' in users:
+    any_user = 'any' in users
+    if 'all' in users or any_user:
         users = home_user_tokens.keys()
     for u in users:
         if u in home_user_tokens:
@@ -615,10 +616,12 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         else:
             log("Do not have the token for " + u + ". Please check spelling or token.")
             return -1
-        if DaysSinceVideoLastViewed == -1:
+        if DaysSinceVideoLastViewed == -1 and not any_user:
             log(u + " has not seen video " + media_id)
             return -1
-        elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
+        elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay and not any_user:  # Find the user who has seen the episode last, minimum DSVLW
+            compareDay = DaysSinceVideoLastViewed
+        elif compareDay == -1 or DaysSinceVideoLastViewed > compareDay and any_user:  # Find the user who has seen the episode first for ANY user
             compareDay = DaysSinceVideoLastViewed
     return compareDay
 
@@ -727,6 +730,7 @@ def cleanUpFolders(section, max_size):
                 for f in Settings['default_ignoreFolders']:
                     if location.getAttribute("path").startswith(f):
                         ignore_folder = True
+                        break
                 if ignore_folder:
                     continue
                 path = getLocalPath(location.getAttribute("path"))
