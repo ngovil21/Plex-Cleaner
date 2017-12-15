@@ -410,7 +410,7 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
 
 
 # Returns if a file action was performed (move, copy, delete)
-def performAction(file, action, media_id=0, location=""):
+def performAction(file, action, media_id=0, location="", parentFolder=None):
     global DeleteCount, DeleteSize, MoveCount, MoveSize, CopyCount, CopySize, FlaggedCount, FlaggedSize
 
     try:
@@ -730,6 +730,7 @@ def cleanUpFolders(section, max_size):
                 for f in Settings['default_ignoreFolders']:
                     if location.getAttribute("path").startswith(f):
                         ignore_folder = True
+                        break
                 if ignore_folder:
                     continue
                 path = getLocalPath(location.getAttribute("path"))
