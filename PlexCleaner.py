@@ -716,8 +716,8 @@ def checkMovies(doc, section):
                 KeptSize += os.stat(m['file']).st_size
         log("")
     if Settings.get('cleanup_movie_folders', False):
-        log("Cleaning up orphaned folders less than " + str(minimum_folder_size) + "MB in Section " + section)
-        cleanUpFolders(section, minimum_folder_size)
+        log("Cleaning up orphaned folders less than " + str(Settings['minimum_folder_size']) + "MB in Section " + section)
+        cleanUpFolders(section, Settings['minimum_folder_size'])
     return changes
 
 
