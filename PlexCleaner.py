@@ -440,7 +440,8 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
         try:
             is_file = os.path.isfile(file.decode('utf-8'))
         except:
-            log("Unable to decode filename, try running script with --reload_encoding.")
+            if not args.reload_encoding:
+                log("Unable to decode filename, try running script with --reload_encoding.")
             log("[NOT FOUND] " + file)
             return False
     except:
