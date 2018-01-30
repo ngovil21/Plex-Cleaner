@@ -433,19 +433,33 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             log("File is in " + path)
             log("[IGNORED] " + file)
             return False
-    if test or action.startswith('f'):  # Test file or Flag file
-        if show_size and os.path.isfile(file):
-            FlaggedSize += os.stat(file).st_size
-        elif not Settings['plex_delete']:
+    is_file = False
+    try:
+        is_file = os.path.isfile(file)
+    except UnicodeDecodeError:
+        try:
+            is_file = os.path.isfile(file.decode('utf-8'))
+        except:
+            log("Unable to decode filename, try running script with --reload_encoding.")
             log("[NOT FOUND] " + file)
             return False
+    except:
+        log("[NOT FOUND] " + file)
+        return False
+
+    if test or action.startswith('f'):  # Test file or Flag file
+        if not is_file:
+            log("[NOT FOUND] " + file)
+            return False
+        if show_size:
+            FlaggedSize += os.stat(file).st_size
         log("**[FLAGGED] " + file)
         ActionHistory.append("[FLAGGED] " + file)
         FlaggedCount += 1
         return False
     elif action.startswith('d') and Settings['plex_delete']:  # Delete using Plex Web API
         try:
-            if show_size and os.path.isfile(file):  # If using plex_delete, check if we can access file
+            if show_size and is_file:  # If using plex_delete, check if we can access file
                 DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
             req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
@@ -461,7 +475,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
                 log(str(traceback.format_exc()))
 
             return False
-    if not os.path.isfile(file):
+    if not is_file:
         log("[NOT FOUND] " + file)
         return False
     if Settings['similar_files']:
