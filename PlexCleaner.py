@@ -15,6 +15,7 @@
 # Version 1.96 - Modified files are printed at the end of the log as well now.
 # Version 2.0 - Added ability to email log summary thanks to stevenflesch
 # Version 2.01 - Email log only when action completed by default, calculate sizes of files changed
+# Version 2.02 - Allow checking shared users by token, allow any user check, bug fixes
 
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
@@ -104,6 +105,8 @@ default_location = ''  # /path/to/file
 # default_homeUsers specifies the home users that the script will try to check watch status of in Plex Home
 # This will check if all users in the list have watched a show. Separate each user with a comma
 # You may use 'all' for the home Users and the script will check watch status of all the users in the Plex Home (Including Guest account if enabled)
+# You may also use 'any' to check if any of the homeUsers has watched the show and fulfills the requirements
+# You may add shared users by using their tokens prepended with a '$' i.e. if the token is TOKEN123, use $TOKEN123
 # It is probably better to list the users explicitly
 default_homeUsers = ''  # 'Bob,Joe,Will'
 # if set to anything > 0, videos with watch progress greater than this will be considered watched
