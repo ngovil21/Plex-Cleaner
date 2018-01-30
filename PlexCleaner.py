@@ -616,12 +616,13 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         else:
             log("Do not have the token for " + u + ". Please check spelling or token.")
             return -1
-        if DaysSinceVideoLastViewed == -1 and not any_user:
+        if any_user:
+            if compareDay == -1 or DaysSinceVideoLastViewed > compareDay:  # Find the user who has seen the episode first for ANY user
+                compareDay = DaysSinceVideoLastViewed
+        elif DaysSinceVideoLastViewed == -1:
             log(u + " has not seen video " + media_id)
-            return -1
-        elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay and not any_user:  # Find the user who has seen the episode last, minimum DSVLW
-            compareDay = DaysSinceVideoLastViewed
-        elif compareDay == -1 or DaysSinceVideoLastViewed > compareDay and any_user:  # Find the user who has seen the episode first for ANY user
+            return -1                                   #Shortcut out, user in list has not seen video
+        elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
             compareDay = DaysSinceVideoLastViewed
     return compareDay
 
@@ -643,8 +644,8 @@ def checkUserWatched(token, media_id, progress_as_watched):
                 d1 = datetime.datetime.today()
                 d2 = datetime.datetime.fromtimestamp(float(lastViewedAt))
                 return (d1 - d2).days
-        else:  # Video has not been seen by this user, return -1 for unseen
-            return -1
+    # Video has not been seen by this user or not accessible, return -1 for unseen
+    return -1
 
 
 # Movies are all listed on one page
