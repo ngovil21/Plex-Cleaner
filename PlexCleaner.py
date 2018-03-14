@@ -183,13 +183,16 @@ try:
 except:
     import ConfigParser
 
+try:
+    from urllib.Error import HTTPError
+    import urllib.request as urllib2
+except:
+    from urllib2 import HTTPError
+    import urllib2
+
 CONFIG_VERSION = 2.0
 home_user_tokens = {}
 machine_client_identifier = ''
-try:
-    import urllib.request as urllib2
-except:
-    import urllib2
 
 
 def convert_size(size_bytes):
@@ -313,6 +316,7 @@ def getPlexHomeUserTokens():
 # Load Settings from json into an OrderedDict, with defaults
 def LoadSettings(opts):
     s = OrderedDict()
+    s['test'] = opts.get('test', False)
     s['Host'] = opts.get('Host', Host)
     s['Port'] = opts.get('Port', Port)
     s['SectionList'] = opts.get('SectionList', SectionList)
@@ -377,7 +381,7 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
         URL = 'http://' + URL
     for x in range(0, max_tries):
         if x > 0:
-            sleep(timeout)
+            sleep(timeout*x)
         try:
             headers = {
                 "X-Plex-Token": token,
@@ -404,6 +408,16 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
                     return xml.dom.minidom.parse(page)
                 else:
                     return page
+        except HTTPError as e:
+            if e.code == 401:
+                if debug_mode:
+                    log("Unauthorized to access url with token.")
+                return None                # Do not retry on unauthorized error, won't be fixed
+            else:
+                log("Error requesting page: %s" % e, True)
+                if debug_mode:
+                    log(str(traceback.format_exc()))
+                continue
         except Exception as e:
             log("Error requesting page: %s" % e, True)
             if debug_mode:
@@ -474,7 +488,6 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             log("Error deleting file: %s" % e, True)
             if debug_mode:
                 log(str(traceback.format_exc()))
-
             return False
     if not is_file:
         log("[NOT FOUND] " + file)
@@ -975,7 +988,6 @@ parser.add_argument("--always_email", "-always_email", "--email", "-email", help
 
 args = parser.parse_args()
 
-test = args.test
 debug_mode = args.debug
 email_empty_log = args.always_email
 show_size = args.show_size
@@ -1018,6 +1030,8 @@ if Config and os.path.isfile(Config):
         dumpSettings(Config)
 else:
     Settings = LoadSettings(Settings)
+
+test = args.test or Settings.get('test', False)
 
 if args.dump:
     # Output settings to a json config file and exit
@@ -1226,6 +1240,10 @@ log("---------------------------------------------------------------------------
 log("                Summary -- Script Completed")
 log("----------------------------------------------------------------------------")
 log("")
+if test:
+    log("** Currently in testing mode. Please review the changes below. **")
+    log("   Remove test from the configuration if everything looks okay.")
+    log("")
 log("  Total File Count      " + str(FileCount) + (
 " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
 log("  Kept Show Files       " + str(KeptCount) + (
