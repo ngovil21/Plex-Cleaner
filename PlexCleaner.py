@@ -299,12 +299,10 @@ def getToken(key=None):
         if key:
             return Settings['Token'].get(key)
         else:
-            # if '*' in Settings['Token']:
-            #     return Settings['Token'].get('*')
             for k in Settings['Token'].keys():
-                if '*' in k:
+                if k.endswith('*'):
                     return Settings['Token'][k]
-            log("No default key specified!")
+            log("[ERROR] No default key specified!", error=True)
             return None
     return Settings['Token']
 
