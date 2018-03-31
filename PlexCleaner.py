@@ -16,6 +16,7 @@
 # Version 2.0 - Added ability to email log summary thanks to stevenflesch
 # Version 2.01 - Email log only when action completed by default, calculate sizes of files changed
 # Version 2.02 - Allow checking shared users by token, allow any user check, bug fixes
+# Version 2.03 - Revamp token handling, able to store multiple tokens and check users accordingly
 
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
