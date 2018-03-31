@@ -745,12 +745,12 @@ def checkMovies(document, section):
             else:
                 compareDay = m['DaysSinceVideoLastViewed']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
-                title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
+                title, m['view'], compareDay, onDeck))
             checkedWatched = (m['view'] > 0 or (0 < movie_settings['progressAsWatched'] < m['progress']))
         else:
             compareDay = m['DaysSinceVideoAdded']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
-                title, m['view'], m['DaysSinceVideoAdded'], onDeck))
+                title, m['view'], compareDay, onDeck))
             checkedWatched = True
         FileCount += 1
         checkDeck = False
@@ -979,7 +979,7 @@ def sendEmail(email_from, email_to, subject, body, server, port, username="", pa
         log("Error in sending Email: " + e.message)
         if debug_mode:
             log(str(traceback.format_exc()))
-        return False
+        raise e
     return senders is None
 
 
@@ -1330,15 +1330,14 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
-        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
+        if sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
                   Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"],
-                  Settings["EmailPassword"], Settings["EmailServerUseTLS"])
-        log("")
-        log("Email of script summary sent successfully.")
+                  Settings["EmailPassword"], Settings["EmailServerUseTLS"]):
+            log("")
+            log("Email of script summary sent successfully.")
     except Exception as e:
         log(e, True)
-        log(
-            "Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
+        log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
         if debug_mode:
             log(str(traceback.format_exc()))
 
