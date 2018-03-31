@@ -40,13 +40,15 @@ EmailRecipient = ""  # Email address to receive the log file contents, if enable
 # Use Username/Password or Token for servers with PlexHome
 # To generate a proper Token, first put your username and password and run the script with the flag --test.
 # The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
-# a readable files.
+# a readable file.
 # Shared is for users that you have invited to the server. This will use their watch information. Be careful with
 # what the default show settings are because deleting files will be done by the OS. To help map the server for
 # Shared users, you can specify the server friendly name or machine identifier.
 Username = ""
 Password = ""
-#  or
+# or you may directly give the token. This can be saved in the config file and is preferred after first run.
+# You may also give the Token as a dict structure, with 'username' : 'TOKEN' to define Shared/Home User tokens as
+# well. The admin token should be defined with the key '*'.
 Token = ""
 Shared = False
 DeviceName = ""
@@ -220,7 +222,7 @@ def log(msg, debug=False):
         print("Cannot print message")
 
 
-def getToken(user, passw):
+def fetchToken(user, passw):
     try:
         from urllib import urlencode  # Python2
     except:
@@ -289,6 +291,13 @@ def getAccessToken(token):
                 return access_token
     return ""
 
+def getToken(key=None):
+    if isinstance(Settings['Token'], dict):
+        if key:
+            return Settings['Token'].get(key)
+        else:
+            return Settings['Token'].get('*')
+    return Settings['Token']
 
 def getPlexHomeUserTokens():
     global home_user_tokens
@@ -374,9 +383,9 @@ def dumpSettings(output):
         json.dump(Settings, outfile, indent=2)
 
 
-def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=None, token=None, method=None):
+def getURLX(URL, data=None, parseXML=True, max_tries=1, timeout=0.5, referer=None, token=None, method=None):
     if not token:
-        token = Settings['Token']
+        token = getToken()
     if not URL.startswith('http'):
         URL = 'http://' + URL
     for x in range(0, max_tries):
@@ -477,9 +486,10 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             if show_size and is_file:  # If using plex_delete, check if we can access file
                 DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
-            req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
-            req.get_method = lambda: 'DELETE'
-            urllib2.urlopen(req)
+            req = getURLX(URL, max_tries=1, method='DELETE', parseXML=False)
+            if not req:
+                log("Unable to plex delete file: %s" % file)
+                return False
             DeleteCount += 1
             log("**[DELETED] " + file)
             ActionHistory.append("[DELETED] " + file)
@@ -633,17 +643,28 @@ def getMediaInfo(VideoNode):
 
 
 def checkUsersWatched(users, media_id, progress_as_watched):
-    if not home_user_tokens:
-        getPlexHomeUserTokens()
     compareDay = -1
-    any_user = 'any' in users
-    if 'all' in users or any_user:
-        users = home_user_tokens.keys()
+    any_user = users == 'any'
+    if users == 'all' or any_user:
+        if isinstance(Settings['Token'], dict):
+            users = Settings['Token'].keys()
+        else:
+            if not home_user_tokens:
+                getPlexHomeUserTokens()
+            users = home_user_tokens.keys()
     for u in users:
-        if u in home_user_tokens:
-            DaysSinceVideoLastViewed = checkUserWatched(home_user_tokens[u], media_id, progress_as_watched)
-        elif u.startswith("$"):
-            DaysSinceVideoLastViewed = checkUserWatched(u[1:], media_id, progress_as_watched)
+        toke = None
+        if u in Settings['Token']:
+            toke = Settings['Token'].get(u, 0)
+        else:
+            if u.startswith("_"):
+                toke = u[1:]
+            elif not home_user_tokens:
+                getPlexHomeUserTokens()
+            elif u in home_user_tokens:
+                toke = home_user_tokens[u]
+        if toke:
+            DaysSinceVideoLastViewed = checkUserWatched(toke, media_id, progress_as_watched)
         else:
             log("Do not have the token for " + u + ". Please check spelling or token.")
             return -1
@@ -652,7 +673,7 @@ def checkUsersWatched(users, media_id, progress_as_watched):
                 compareDay = DaysSinceVideoLastViewed
         elif DaysSinceVideoLastViewed == -1:
             log(u + " has not seen video " + media_id)
-            return -1                                   #Shortcut out, user in list has not seen video
+            return -1                                                    #Shortcut out, user in list has not seen video
         elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
             compareDay = DaysSinceVideoLastViewed
     return compareDay
@@ -680,13 +701,13 @@ def checkUserWatched(token, media_id, progress_as_watched):
 
 
 # Movies are all listed on one page
-def checkMovies(doc, section):
+def checkMovies(document, section):
     global FileCount
     global KeptCount
     global KeptSize
 
     changes = 0
-    for VideoNode in doc.getElementsByTagName("Video"):
+    for VideoNode in document.getElementsByTagName("Video"):
         movie_settings = default_settings.copy()
         movie_settings.update(Settings['MoviePreferences'])
         title = VideoNode.getAttribute("title")
@@ -704,8 +725,8 @@ def checkMovies(doc, section):
         check_users = []
         if movie_settings['homeUsers']:
             check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
-            for i in range(0, len(check_users)):  # Remove extra spaces and commas
-                check_users[i] = check_users[i].strip(", ")
+            for j in range(0, len(check_users)):  # Remove extra spaces and commas
+                check_users[j] = check_users[j].strip(", ")
         if movie_settings['watched']:
             if check_users:
                 movie_settings['onDeck'] = False
@@ -1082,9 +1103,9 @@ if not Settings['Client_ID']:
     else:
         Settings['Client_ID'] = "506c6578436c65616e6572"  # PlexCleaner in Hexadecimal
 
-if Settings['Token'] == "":
+if not Settings['Token']:
     if Settings['Username']:
-        Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
+        Settings['Token'] = fetchToken(Settings['Username'], Settings['Password'])
         if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
@@ -1094,7 +1115,7 @@ if Settings['Token'] == "":
 if args.clean_devices:
     log("Cleaning up devices on plex.tv")
     try:
-        x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
+        x = getURLX("https://plex.tv/devices", parseXML=True, token=getToken())
     except:
         if debug_mode:
             log(str(traceback.format_exc()))
@@ -1106,13 +1127,13 @@ if args.clean_devices:
     log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
         name = device.getAttribute("name")
-        if device.getAttribute("token") == Settings['Token']:  # Don't delete the current device token
+        if device.getAttribute("token") == getToken():  # Don't delete the current device token
             continue
         if device.getAttribute("name") == "PlexCleaner" or device.getAttribute("product") == "PlexCleaner":
             deviceCount += 1
             id = device.getAttribute("id")
             try:
-                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=getToken(), method='DELETE',
                         parseXML=False)
                 log("Deleted device: " + device.getAttribute("clientIdentifier"))
                 sleep(0.1)  # sleep for 100ms to rate limit requests to plex.tv
@@ -1140,8 +1161,8 @@ else:
     log("Cannot reach server!")
     ErrorLog.append("Cannot reach server!")
 
-if Settings['Shared'] and Settings['Token']:
-    accessToken = getAccessToken(Settings['Token'])
+if Settings['Shared'] and getToken():
+    accessToken = getAccessToken(getToken())
     if accessToken:
         Settings['Token'] = accessToken
         if test:
