@@ -108,7 +108,7 @@ default_location = ''  # /path/to/file
 # This will check if all users in the list have watched a show. Separate each user with a comma
 # You may use 'all' for the home Users and the script will check watch status of all the users in the Plex Home (Including Guest account if enabled)
 # You may also use 'any' to check if any of the homeUsers has watched the show and fulfills the requirements
-# You may add shared users by using their tokens prepended with a '$' i.e. if the token is TOKEN123, use $TOKEN123
+# You may add shared users by using their tokens prepended with a '_' i.e. if the token is TOKEN123, use $TOKEN123
 # It is probably better to list the users explicitly
 default_homeUsers = ''  # 'Bob,Joe,Will'
 # if set to anything > 0, videos with watch progress greater than this will be considered watched
