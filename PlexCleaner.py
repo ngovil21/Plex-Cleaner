@@ -16,6 +16,7 @@
 # Version 2.0 - Added ability to email log summary thanks to stevenflesch
 # Version 2.01 - Email log only when action completed by default, calculate sizes of files changed
 # Version 2.02 - Allow checking shared users by token, allow any user check, bug fixes
+# Version 2.03 - Revamp token handling, able to store multiple tokens and check users accordingly
 
 ## Config File ###########################################################
 # All settings in the config file will overwrite the settings here
@@ -40,13 +41,15 @@ EmailRecipient = ""  # Email address to receive the log file contents, if enable
 # Use Username/Password or Token for servers with PlexHome
 # To generate a proper Token, first put your username and password and run the script with the flag --test.
 # The Token will be printed in the console or in the logs. Tokens are preferred so that you password is not in
-# a readable files.
+# a readable file.
 # Shared is for users that you have invited to the server. This will use their watch information. Be careful with
 # what the default show settings are because deleting files will be done by the OS. To help map the server for
 # Shared users, you can specify the server friendly name or machine identifier.
 Username = ""
 Password = ""
-#  or
+# or you may directly give the token. This can be saved in the config file and is preferred after first run.
+# You may also give the Token as a dict structure, with 'username' : 'TOKEN' to define Shared/Home User tokens as
+# well. The admin token should be defined with the key '*'.
 Token = ""
 Shared = False
 DeviceName = ""
@@ -106,7 +109,7 @@ default_location = ''  # /path/to/file
 # This will check if all users in the list have watched a show. Separate each user with a comma
 # You may use 'all' for the home Users and the script will check watch status of all the users in the Plex Home (Including Guest account if enabled)
 # You may also use 'any' to check if any of the homeUsers has watched the show and fulfills the requirements
-# You may add shared users by using their tokens prepended with a '$' i.e. if the token is TOKEN123, use $TOKEN123
+# You may add shared users by using their tokens prepended with a '_' i.e. if the token is TOKEN123, use $TOKEN123
 # It is probably better to list the users explicitly
 default_homeUsers = ''  # 'Bob,Joe,Will'
 # if set to anything > 0, videos with watch progress greater than this will be considered watched
@@ -183,13 +186,16 @@ try:
 except:
     import ConfigParser
 
+try:
+    from urllib.Error import HTTPError
+    import urllib.request as urllib2
+except:
+    from urllib2 import HTTPError
+    import urllib2
+
 CONFIG_VERSION = 2.0
 home_user_tokens = {}
 machine_client_identifier = ''
-try:
-    import urllib.request as urllib2
-except:
-    import urllib2
 
 
 def convert_size(size_bytes):
@@ -202,7 +208,9 @@ def convert_size(size_bytes):
     return '%s %s' % (s, size_name[i])
 
 
-def log(msg, debug=False):
+def log(msg, debug=False, error=False):
+    if error:
+        ErrorLog.append(msg)
     try:
         if LogToFile:
             if debug:
@@ -210,14 +218,14 @@ def log(msg, debug=False):
             else:
                 logging.info(msg)
     except:
-        print("Error logging message")
+        print("[ERROR] Error logging message")
     try:
         print(msg.encode('ascii', 'replace').decode())
     except:
         print("Cannot print message")
 
 
-def getToken(user, passw):
+def fetchToken(user, passw):
     try:
         from urllib import urlencode  # Python2
     except:
@@ -251,7 +259,7 @@ def getToken(user, passw):
         loaded = json.loads(str_response)
         return loaded['user']['authentication_token']
     except Exception as e:
-        log("Error getting Token: %s" % e, True)
+        log("[ERROR] Unable to obtain Token: %s" % e, debug=True, error=True)
         if debug_mode:
             log(str(traceback.format_exc()))
         return ""
@@ -286,6 +294,17 @@ def getAccessToken(token):
                 return access_token
     return ""
 
+def getToken(key=None):
+    if isinstance(Settings['Token'], dict):
+        if key:
+            return Settings['Token'].get(key)
+        else:
+            for k in Settings['Token'].keys():
+                if k.endswith('*'):
+                    return Settings['Token'][k]
+            log("[ERROR] No default key specified!", error=True)
+            return None
+    return Settings['Token']
 
 def getPlexHomeUserTokens():
     global home_user_tokens
@@ -313,6 +332,7 @@ def getPlexHomeUserTokens():
 # Load Settings from json into an OrderedDict, with defaults
 def LoadSettings(opts):
     s = OrderedDict()
+    s['test'] = opts.get('test', False)
     s['Host'] = opts.get('Host', Host)
     s['Port'] = opts.get('Port', Port)
     s['SectionList'] = opts.get('SectionList', SectionList)
@@ -370,14 +390,14 @@ def dumpSettings(output):
         json.dump(Settings, outfile, indent=2)
 
 
-def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=None, token=None, method=None):
+def getURLX(URL, data=None, parseXML=True, max_tries=1, timeout=0.5, referer=None, token=None, method=None):
     if not token:
-        token = Settings['Token']
+        token = getToken()
     if not URL.startswith('http'):
         URL = 'http://' + URL
     for x in range(0, max_tries):
         if x > 0:
-            sleep(timeout)
+            sleep(timeout*x)
         try:
             headers = {
                 "X-Plex-Token": token,
@@ -404,8 +424,18 @@ def getURLX(URL, data=None, parseXML=True, max_tries=3, timeout=0.5, referer=Non
                     return xml.dom.minidom.parse(page)
                 else:
                     return page
+        except HTTPError as e:
+            if e.code == 401:
+                if debug_mode:
+                    log("Unauthorized to access url with token.")
+                return None                # Do not retry on unauthorized error, won't be fixed
+            else:
+                log("Error requesting page: %s" % e, debug=True)
+                if debug_mode:
+                    log(str(traceback.format_exc()))
+                continue
         except Exception as e:
-            log("Error requesting page: %s" % e, True)
+            log("Error requesting page: %s" % e, debug=True)
             if debug_mode:
                 log(str(traceback.format_exc()))
             continue
@@ -440,7 +470,8 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
         try:
             is_file = os.path.isfile(file.decode('utf-8'))
         except:
-            log("Unable to decode filename, try running script with --reload_encoding.")
+            if not args.reload_encoding:
+                log("Unable to decode filename, try running script with --reload_encoding.")
             log("[NOT FOUND] " + file)
             return False
     except:
@@ -462,25 +493,25 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             if show_size and is_file:  # If using plex_delete, check if we can access file
                 DeleteSize += os.stat(file).st_size
             URL = (Settings['Host'] + ":" + Settings['Port'] + "/library/metadata/" + str(media_id))
-            req = urllib2.Request(URL, None, {"X-Plex-Token": Settings['Token']})
-            req.get_method = lambda: 'DELETE'
-            urllib2.urlopen(req)
+            req = getURLX(URL, max_tries=1, method='DELETE', parseXML=False)
+            if not req:
+                log("Unable to plex delete file: %s" % file)
+                return False
             DeleteCount += 1
             log("**[DELETED] " + file)
             ActionHistory.append("[DELETED] " + file)
             return True
         except Exception as e:
-            log("Error deleting file: %s" % e, True)
+            log("[ERROR] Cannot delete file: %s" % e, debug=True, error=True)
             if debug_mode:
                 log(str(traceback.format_exc()))
-
             return False
     if not is_file:
         log("[NOT FOUND] " + file)
         return False
     if Settings['similar_files']:
         regex = re.sub("\[", "[[]", os.path.splitext(file)[0]) + "*"
-        log("Finding files similar to: " + regex)
+        log("[INFO] Finding files similar to: " + regex)
         filelist = glob.glob(regex)
     else:
         filelist = (file,)
@@ -495,7 +526,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             CopyCount += 1
             return True
         except Exception as e:
-            log("Error copying file: %s" % e, True)
+            log("[ERROR] Error copying file: %s" % e, debug=True, error=True)
             return False
     elif action.startswith('m'):
         for f in filelist:
@@ -506,7 +537,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
                 shutil.move(os.path.realpath(f), location)
                 log("**[MOVED] " + f)
             except Exception as e:
-                log("Error moving file: %s" % e, True)
+                log("[ERROR] Error moving file: %s" % e, debug=True, error=True)
                 return False
             if os.path.islink(f):
                 os.unlink(f)
@@ -521,7 +552,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
                 os.remove(f)
                 log("**[DELETED] " + f)
             except Exception as e:
-                log("Error deleting file: %s" % e, True)
+                log("[ERROR] Error deleting file: %s" % e, debug=True, error=True)
                 continue
         ActionHistory.append("[DELETED] " + filelist[0])
         DeleteCount += 1
@@ -619,26 +650,37 @@ def getMediaInfo(VideoNode):
 
 
 def checkUsersWatched(users, media_id, progress_as_watched):
-    if not home_user_tokens:
-        getPlexHomeUserTokens()
     compareDay = -1
-    any_user = 'any' in users
-    if 'all' in users or any_user:
-        users = home_user_tokens.keys()
-    for u in users:
-        if u in home_user_tokens:
-            DaysSinceVideoLastViewed = checkUserWatched(home_user_tokens[u], media_id, progress_as_watched)
-        elif u.startswith("$"):
-            DaysSinceVideoLastViewed = checkUserWatched(u[1:], media_id, progress_as_watched)
+    any_user = users == 'any'
+    if users == 'all' or any_user:
+        if isinstance(Settings['Token'], dict):
+            users = Settings['Token'].keys()
         else:
-            log("Do not have the token for " + u + ". Please check spelling or token.")
+            if not home_user_tokens:
+                getPlexHomeUserTokens()
+            users = home_user_tokens.keys()
+    for u in users:
+        toke = None
+        if u in Settings['Token']:
+            toke = Settings['Token'].get(u, 0)
+        else:
+            if u.startswith("_"):
+                toke = u[1:]
+            elif not home_user_tokens:
+                getPlexHomeUserTokens()
+            elif u in home_user_tokens:
+                toke = home_user_tokens[u]
+        if toke:
+            DaysSinceVideoLastViewed = checkUserWatched(toke, media_id, progress_as_watched)
+        else:
+            log("[ERROR] Do not have the token for " + u + ". Please check spelling or token.", error=True)
             return -1
         if any_user:
             if compareDay == -1 or DaysSinceVideoLastViewed > compareDay:  # Find the user who has seen the episode first for ANY user
                 compareDay = DaysSinceVideoLastViewed
         elif DaysSinceVideoLastViewed == -1:
-            log(u + " has not seen video " + media_id)
-            return -1                                   #Shortcut out, user in list has not seen video
+            log("[INFO] " + u + " has not seen video " + media_id)
+            return -1                                                    #Shortcut out, user in list has not seen video
         elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
             compareDay = DaysSinceVideoLastViewed
     return compareDay
@@ -666,13 +708,13 @@ def checkUserWatched(token, media_id, progress_as_watched):
 
 
 # Movies are all listed on one page
-def checkMovies(doc, section):
+def checkMovies(document, section):
     global FileCount
     global KeptCount
     global KeptSize
 
     changes = 0
-    for VideoNode in doc.getElementsByTagName("Video"):
+    for VideoNode in document.getElementsByTagName("Video"):
         movie_settings = default_settings.copy()
         movie_settings.update(Settings['MoviePreferences'])
         title = VideoNode.getAttribute("title")
@@ -690,8 +732,8 @@ def checkMovies(doc, section):
         check_users = []
         if movie_settings['homeUsers']:
             check_users = movie_settings['homeUsers'].strip(" ,").lower().split(",")
-            for i in range(0, len(check_users)):  # Remove extra spaces and commas
-                check_users[i] = check_users[i].strip(", ")
+            for j in range(0, len(check_users)):  # Remove extra spaces and commas
+                check_users[j] = check_users[j].strip(", ")
         if movie_settings['watched']:
             if check_users:
                 movie_settings['onDeck'] = False
@@ -710,12 +752,12 @@ def checkMovies(doc, section):
             else:
                 compareDay = m['DaysSinceVideoLastViewed']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
-                title, m['view'], m['DaysSinceVideoLastViewed'], onDeck))
+                title, m['view'], compareDay, onDeck))
             checkedWatched = (m['view'] > 0 or (0 < movie_settings['progressAsWatched'] < m['progress']))
         else:
             compareDay = m['DaysSinceVideoAdded']
             log("%s | Viewed: %d | Days Since Viewed: %d | On Deck: %s" % (
-                title, m['view'], m['DaysSinceVideoAdded'], onDeck))
+                title, m['view'], compareDay, onDeck))
             checkedWatched = True
         FileCount += 1
         checkDeck = False
@@ -944,7 +986,7 @@ def sendEmail(email_from, email_to, subject, body, server, port, username="", pa
         log("Error in sending Email: " + e.message)
         if debug_mode:
             log(str(traceback.format_exc()))
-        return False
+        raise e
     return senders is None
 
 
@@ -974,7 +1016,6 @@ parser.add_argument("--always_email", "-always_email", "--email", "-email", help
 
 args = parser.parse_args()
 
-test = args.test
 debug_mode = args.debug
 email_empty_log = args.always_email
 show_size = args.show_size
@@ -1017,6 +1058,8 @@ if Config and os.path.isfile(Config):
         dumpSettings(Config)
 else:
     Settings = LoadSettings(Settings)
+
+test = args.test or Settings.get('test', False)
 
 if args.dump:
     # Output settings to a json config file and exit
@@ -1067,9 +1110,9 @@ if not Settings['Client_ID']:
     else:
         Settings['Client_ID'] = "506c6578436c65616e6572"  # PlexCleaner in Hexadecimal
 
-if Settings['Token'] == "":
+if not Settings['Token']:
     if Settings['Username']:
-        Settings['Token'] = getToken(Settings['Username'], Settings['Password'])
+        Settings['Token'] = fetchToken(Settings['Username'], Settings['Password'])
         if not Settings['Token']:
             log("Error getting token, trying without...", True)
         elif test:
@@ -1079,7 +1122,7 @@ if Settings['Token'] == "":
 if args.clean_devices:
     log("Cleaning up devices on plex.tv")
     try:
-        x = getURLX("https://plex.tv/devices", parseXML=True, token=Settings['Token'])
+        x = getURLX("https://plex.tv/devices", parseXML=True, token=getToken())
     except:
         if debug_mode:
             log(str(traceback.format_exc()))
@@ -1091,13 +1134,13 @@ if args.clean_devices:
     log("There are %d client devices." % len(x.getElementsByTagName("Device")))
     for device in x.getElementsByTagName("Device"):
         name = device.getAttribute("name")
-        if device.getAttribute("token") == Settings['Token']:  # Don't delete the current device token
+        if device.getAttribute("token") == getToken():  # Don't delete the current device token
             continue
         if device.getAttribute("name") == "PlexCleaner" or device.getAttribute("product") == "PlexCleaner":
             deviceCount += 1
             id = device.getAttribute("id")
             try:
-                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=Settings['Token'], method='DELETE',
+                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=getToken(), method='DELETE',
                         parseXML=False)
                 log("Deleted device: " + device.getAttribute("clientIdentifier"))
                 sleep(0.1)  # sleep for 100ms to rate limit requests to plex.tv
@@ -1122,18 +1165,16 @@ if server_check:
     if not machine_client_identifier:
         machine_client_identifier = media_container.getAttribute("machineIdentifier")
 else:
-    log("Cannot reach server!")
-    ErrorLog.append("Cannot reach server!")
+    log("[ERROR] Cannot reach server!", error=True)
 
-if Settings['Shared'] and Settings['Token']:
-    accessToken = getAccessToken(Settings['Token'])
+if Settings['Shared'] and getToken():
+    accessToken = getAccessToken(getToken())
     if accessToken:
         Settings['Token'] = accessToken
         if test:
             log("Access Token: " + Settings['Token'], True)
     else:
-        log("Access Token not found or not a shared account")
-        ErrorLog.append("Access Token not found or not a shared account")
+        log("[ERROR] Access Token not found or not a shared account", error=True)
 
 default_settings = {'episodes': Settings['default_episodes'],
                     'minDays': Settings['default_minDays'],
@@ -1199,8 +1240,7 @@ for Section in Settings['SectionList']:
     deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
 
     if not doc:
-        log("Failed to load Section %s. Skipping..." % Section)
-        ErrorLog.append("Failed to load Section %s. Skipping..." % Section)
+        log("[ERROR] Failed to load Section %s. Skipping..." % Section, error=True)
         continue
     SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
     log("")
@@ -1225,6 +1265,10 @@ log("---------------------------------------------------------------------------
 log("                Summary -- Script Completed")
 log("----------------------------------------------------------------------------")
 log("")
+if test:
+    log("** Currently in testing mode. Please review the changes below. **")
+    log("   Remove test from the configuration if everything looks okay.")
+    log("")
 log("  Total File Count      " + str(FileCount) + (
 " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
 log("  Kept Show Files       " + str(KeptCount) + (
@@ -1290,15 +1334,14 @@ if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(
         EmailContents.append("\n")
         EmailContents.append("----------------------------------------------------------------------------")
         EmailContents.append("</pre>")
-        sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
+        if sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
                   Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"],
-                  Settings["EmailPassword"], Settings["EmailServerUseTLS"])
-        log("")
-        log("Email of script summary sent successfully.")
+                  Settings["EmailPassword"], Settings["EmailServerUseTLS"]):
+            log("")
+            log("Email of script summary sent successfully.")
     except Exception as e:
         log(e, True)
-        log(
-            "Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
+        log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
         if debug_mode:
             log(str(traceback.format_exc()))
 
