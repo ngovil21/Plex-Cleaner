@@ -207,7 +207,9 @@ def convert_size(size_bytes):
     return '%s %s' % (s, size_name[i])
 
 
-def log(msg, debug=False):
+def log(msg, debug=False, error=False):
+    if error:
+        ErrorLog.append(msg)
     try:
         if LogToFile:
             if debug:
@@ -215,7 +217,7 @@ def log(msg, debug=False):
             else:
                 logging.info(msg)
     except:
-        print("Error logging message")
+        print("[ERROR] Error logging message")
     try:
         print(msg.encode('ascii', 'replace').decode())
     except:
@@ -256,7 +258,7 @@ def fetchToken(user, passw):
         loaded = json.loads(str_response)
         return loaded['user']['authentication_token']
     except Exception as e:
-        log("Error getting Token: %s" % e, True)
+        log("[ERROR] Unable to obtain Token: %s" % e, debug=True, error=True)
         if debug_mode:
             log(str(traceback.format_exc()))
         return ""
@@ -429,12 +431,12 @@ def getURLX(URL, data=None, parseXML=True, max_tries=1, timeout=0.5, referer=Non
                     log("Unauthorized to access url with token.")
                 return None                # Do not retry on unauthorized error, won't be fixed
             else:
-                log("Error requesting page: %s" % e, True)
+                log("Error requesting page: %s" % e, debug=True)
                 if debug_mode:
                     log(str(traceback.format_exc()))
                 continue
         except Exception as e:
-            log("Error requesting page: %s" % e, True)
+            log("Error requesting page: %s" % e, debug=True)
             if debug_mode:
                 log(str(traceback.format_exc()))
             continue
@@ -501,7 +503,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             ActionHistory.append("[DELETED] " + file)
             return True
         except Exception as e:
-            log("Error deleting file: %s" % e, True)
+            log("[ERROR] Cannot delete file: %s" % e, debug=True, error=True)
             if debug_mode:
                 log(str(traceback.format_exc()))
             return False
@@ -510,7 +512,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
         return False
     if Settings['similar_files']:
         regex = re.sub("\[", "[[]", os.path.splitext(file)[0]) + "*"
-        log("Finding files similar to: " + regex)
+        log("[INFO] Finding files similar to: " + regex)
         filelist = glob.glob(regex)
     else:
         filelist = (file,)
@@ -525,7 +527,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
             CopyCount += 1
             return True
         except Exception as e:
-            log("Error copying file: %s" % e, True)
+            log("[ERROR] Error copying file: %s" % e, debug=True, error=True)
             return False
     elif action.startswith('m'):
         for f in filelist:
@@ -536,7 +538,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
                 shutil.move(os.path.realpath(f), location)
                 log("**[MOVED] " + f)
             except Exception as e:
-                log("Error moving file: %s" % e, True)
+                log("[ERROR] Error moving file: %s" % e, debug=True, error=True)
                 return False
             if os.path.islink(f):
                 os.unlink(f)
@@ -551,7 +553,7 @@ def performAction(file, action, media_id=0, location="", parentFolder=None):
                 os.remove(f)
                 log("**[DELETED] " + f)
             except Exception as e:
-                log("Error deleting file: %s" % e, True)
+                log("[ERROR] Error deleting file: %s" % e, debug=True, error=True)
                 continue
         ActionHistory.append("[DELETED] " + filelist[0])
         DeleteCount += 1
@@ -672,13 +674,13 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         if toke:
             DaysSinceVideoLastViewed = checkUserWatched(toke, media_id, progress_as_watched)
         else:
-            log("Do not have the token for " + u + ". Please check spelling or token.")
+            log("[ERROR] Do not have the token for " + u + ". Please check spelling or token.", error=True)
             return -1
         if any_user:
             if compareDay == -1 or DaysSinceVideoLastViewed > compareDay:  # Find the user who has seen the episode first for ANY user
                 compareDay = DaysSinceVideoLastViewed
         elif DaysSinceVideoLastViewed == -1:
-            log(u + " has not seen video " + media_id)
+            log("[INFO] " + u + " has not seen video " + media_id)
             return -1                                                    #Shortcut out, user in list has not seen video
         elif compareDay == -1 or DaysSinceVideoLastViewed < compareDay:  # Find the user who has seen the episode last, minimum DSVLW
             compareDay = DaysSinceVideoLastViewed
@@ -1164,8 +1166,7 @@ if server_check:
     if not machine_client_identifier:
         machine_client_identifier = media_container.getAttribute("machineIdentifier")
 else:
-    log("Cannot reach server!")
-    ErrorLog.append("Cannot reach server!")
+    log("[ERROR] Cannot reach server!", error=True)
 
 if Settings['Shared'] and getToken():
     accessToken = getAccessToken(getToken())
@@ -1174,8 +1175,7 @@ if Settings['Shared'] and getToken():
         if test:
             log("Access Token: " + Settings['Token'], True)
     else:
-        log("Access Token not found or not a shared account")
-        ErrorLog.append("Access Token not found or not a shared account")
+        log("[ERROR] Access Token not found or not a shared account", error=True)
 
 default_settings = {'episodes': Settings['default_episodes'],
                     'minDays': Settings['default_minDays'],
@@ -1241,8 +1241,7 @@ for Section in Settings['SectionList']:
     deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
 
     if not doc:
-        log("Failed to load Section %s. Skipping..." % Section)
-        ErrorLog.append("Failed to load Section %s. Skipping..." % Section)
+        log("[ERROR] Failed to load Section %s. Skipping..." % Section, error=True)
         continue
     SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
     log("")
