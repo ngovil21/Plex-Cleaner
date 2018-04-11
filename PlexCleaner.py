@@ -1130,6 +1130,9 @@ if __name__ == "__main__":
         for k in Settings['Token']:
             if k.endswith('$'):
                 Settings['Token'][k] = getAccessToken(Settings['Token'][k])
+                Settings['Token'][k[:-1].lower()] = Settings['Token'][k]    #add shared user without trailing '$'
+            if k.endswith('*'):
+                Settings['Token'][k[:-1].lower()] = Settings['Token'][k]    #add default user without trailing '*'
             Settings['Token'][k.lower()] = Settings['Token'][k]
 
     if args.clean_devices:
