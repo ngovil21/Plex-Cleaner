@@ -1127,7 +1127,7 @@ if __name__ == "__main__":
 
     # Process Token keys, ensure we have lowercase usernames and get access token for shared users.
     if isinstance(Settings['Token'], dict):
-        for k in Settings['Token']:
+        for k in Settings['Token'].keys():
             if k.endswith('$'):
                 Settings['Token'][k] = getAccessToken(Settings['Token'][k])
                 Settings['Token'][k[:-1].lower()] = Settings['Token'][k]    #add shared user without trailing '$'
