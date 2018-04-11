@@ -269,6 +269,7 @@ def fetchToken(user, passw):
 def getAccessToken(token):
     resources = getURLX("https://plex.tv/api/resources?includeHttps=1", token=token)
     if not resources:
+        log("[ERROR] Unable to get access token for token ending with: " + token[-4:], error=True)
         return ""
     devices = resources.getElementsByTagName("Device")
     for device in devices:
@@ -278,6 +279,7 @@ def getAccessToken(token):
                             'DeviceName'].lower() in device.getAttribute('clientIdentifier').lower())):
             access_token = device.getAttribute('accessToken')
             if not access_token:
+                log("[ERROR] Unable to get access token for token ending with: " + token[-4:], error=True)
                 return ""
             return access_token
         connections = device.getElementsByTagName("Connection")
@@ -299,6 +301,8 @@ def getToken(key=None):
         if key:
             return Settings['Token'].get(key)
         else:
+            if len(Settings['Token']) == 1:
+                return Settings['Token'].values()[0]
             for k in Settings['Token'].keys():
                 if k.endswith('*'):
                     return Settings['Token'][k]
@@ -992,357 +996,369 @@ def sendEmail(email_from, email_to, subject, body, server, port, username="", pa
 
 ## Main Script ############################################
 
-# parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
-parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?',
-                    const="Cleaner.conf", default=None)
-parser.add_argument("--config", "-config", "--load", "-load",
-                    help="Load settings from a configuration file and run with settings")
-parser.add_argument("--update_config", "-update_config", action="store_true",
-                    help="Update the config file with new settings from the script and exit")
-parser.add_argument("--debug", "-debug", action="store_true", default=False,
-                    help="Run script in debug mode to log more error information")
-parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload", action="store_true", default=False,
-                    help="Reload system with default encoding set to utf-8")
-parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
-                    help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
-parser.add_argument("--show_size", "-show_size", "--size", "-size", help="Show total size of files changed",
-                    action="store_true", default=False)
-parser.add_argument("--always_email", "-always_email", "--email", "-email", help="Always email log, even if empty",
-                    action="store_true", default=False)
-# parser.add_argument("--config_edit", "-config_edit", action="store_true",
-#                     help="Prompts for editing the config from the commandline")
+if __name__ == "__main__":
 
-args = parser.parse_args()
+    # parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", "-test", help="Run the script in test mode", action="store_true", default=False)
+    parser.add_argument("--dump", "-dump", help="Dump the settings to a configuration file and exit", nargs='?',
+                        const="Cleaner.conf", default=None)
+    parser.add_argument("--config", "-config", "--load", "-load",
+                        help="Load settings from a configuration file and run with settings")
+    parser.add_argument("--update_config", "-update_config", action="store_true",
+                        help="Update the config file with new settings from the script and exit")
+    parser.add_argument("--debug", "-debug", action="store_true", default=False,
+                        help="Run script in debug mode to log more error information")
+    parser.add_argument("--reload_encoding", "-reload_encoding", "--reload", "-reload", action="store_true", default=False,
+                        help="Reload system with default encoding set to utf-8")
+    parser.add_argument("--clean_devices", "-clean_devices", "--clean", "-clean",
+                        help="Cleanup old PlexCleaner devices ids", action="store_true", default=False)
+    parser.add_argument("--show_size", "-show_size", "--size", "-size", help="Show total size of files changed",
+                        action="store_true", default=False)
+    parser.add_argument("--always_email", "-always_email", "--email", "-email", help="Always email log, even if empty",
+                        action="store_true", default=False)
+    # parser.add_argument("--config_edit", "-config_edit", action="store_true",
+    #                     help="Prompts for editing the config from the commandline")
 
-debug_mode = args.debug
-email_empty_log = args.always_email
-show_size = args.show_size
+    args = parser.parse_args()
 
-if args.reload_encoding:
-    # reload sys to set default encoding to utf-8
-    try:
-        reload(sys)
-        sys.setdefaultencoding("utf-8")
-    except:
-        pass
+    debug_mode = args.debug
+    email_empty_log = args.always_email
+    show_size = args.show_size
 
-if args.config:
-    Config = args.config
-# If no config file is provided, check if there is a config file in first the user directory, or the current directory.
-if Config == "":
-    if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
-        Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
-    elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
-        Config = os.path.join(sys.path[0], "Cleaner.conf")
-    elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
-        Config = os.path.join(sys.path[0], "Settings.cfg")
-    elif os.path.isfile(".plexcleaner"):
-        Config = ".plexcleaner"
-    elif os.path.isfile("Cleaner.conf"):
-        Config = "Cleaner.conf"
+    if args.reload_encoding:
+        # reload sys to set default encoding to utf-8
+        try:
+            reload(sys)
+            sys.setdefaultencoding("utf-8")
+        except:
+            pass
 
-Settings = OrderedDict()
+    if args.config:
+        Config = args.config
+    # If no config file is provided, check if there is a config file in first the user directory, or the current directory.
+    if Config == "":
+        if os.path.isfile(os.path.join(os.path.expanduser("~"), ".plexcleaner")):
+            Config = os.path.join(os.path.expanduser("~"), ".plexcleaner")
+        elif os.path.isfile(os.path.join(sys.path[0], "Cleaner.conf")):
+            Config = os.path.join(sys.path[0], "Cleaner.conf")
+        elif os.path.isfile(os.path.join(sys.path[0], "Settings.cfg")):
+            Config = os.path.join(sys.path[0], "Settings.cfg")
+        elif os.path.isfile(".plexcleaner"):
+            Config = ".plexcleaner"
+        elif os.path.isfile("Cleaner.conf"):
+            Config = "Cleaner.conf"
 
-if Config and os.path.isfile(Config):
-    print("Loading config file: " + Config)
-    with open(Config, 'r') as infile:
-        opt_string = infile.read().replace('\n', '')  # read in file removing breaks
-        # Escape odd number of backslashes (Windows paths are a problem)
-        opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
-        options = json.loads(opt_string)
-        Settings = LoadSettings(options)
-    if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
-        print("Old version of config file! Updating...")
-        dumpSettings(Config)
-else:
-    Settings = LoadSettings(Settings)
+    Settings = OrderedDict()
 
-test = args.test or Settings.get('test', False)
-
-if args.dump:
-    # Output settings to a json config file and exit
-    print("Saving settings to " + args.dump)
-    dumpSettings(args.dump)
-    print("Settings saved. Exiting...")
-    exit()
-
-if test:
-    print(json.dumps(Settings, indent=2, sort_keys=False))  # if testing print out the loaded settings in the console
-
-if args.update_config:
-    if Config:
-        # resp = get_input("Edit Settings in console? (y/n)")
-        # if resp.lower().startswith("y"):
-        #     while True:
-        print("Updating Config file with current settings")
-        dumpSettings(Config)
-        exit()
+    if Config and os.path.isfile(Config):
+        print("Loading config file: " + Config)
+        with open(Config, 'r') as infile:
+            opt_string = infile.read().replace('\n', '')  # read in file removing breaks
+            # Escape odd number of backslashes (Windows paths are a problem)
+            opt_string = re.sub(r'(?x)(?<!\\)\\(?=(?:\\\\)*(?!\\))', r'\\\\', opt_string)
+            options = json.loads(opt_string)
+            Settings = LoadSettings(options)
+        if ('Version' not in options) or not options['Version'] or (options['Version'] < CONFIG_VERSION):
+            print("Old version of config file! Updating...")
+            dumpSettings(Config)
     else:
-        print("No config file found! Exiting!")
+        Settings = LoadSettings(Settings)
+
+    test = args.test or Settings.get('test', False)
+
+    if args.dump:
+        # Output settings to a json config file and exit
+        print("Saving settings to " + args.dump)
+        dumpSettings(args.dump)
+        print("Settings saved. Exiting...")
         exit()
 
-ErrorLog = []
+    if test:
+        print(json.dumps(Settings, indent=2, sort_keys=False))  # if testing print out the loaded settings in the console
 
-if Settings['Host'] == "":
-    Settings['Host'] = "127.0.0.1"
-if Settings['Port'] == "":
-    Settings['Port'] = "32400"
+    if args.update_config:
+        if Config:
+            # resp = get_input("Edit Settings in console? (y/n)")
+            # if resp.lower().startswith("y"):
+            #     while True:
+            print("Updating Config file with current settings")
+            dumpSettings(Config)
+            exit()
+        else:
+            print("No config file found! Exiting!")
+            exit()
 
-LogToFile = False
-if not Settings['LogFile'] == "":
-    LogToFile = True
-    filemode = "w"
-    if Settings.get("LogFileMode").startswith("a"):
-        filemode = "a"
-    logging.basicConfig(filename=Settings['LogFile'], filemode=filemode, level=logging.DEBUG)
-    logging.captureWarnings(True)
+    ErrorLog = []
 
-log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
-log("")
+    if Settings['Host'] == "":
+        Settings['Host'] = "127.0.0.1"
+    if Settings['Port'] == "":
+        Settings['Port'] = "32400"
 
-# If we don't have a client_id, generate a unique UID for machine and save in config
-if not Settings['Client_ID']:
-    if Config:
-        Settings['Client_ID'] = str(uuid.uuid1().hex)
-        dumpSettings(Config)
-    else:
-        Settings['Client_ID'] = "506c6578436c65616e6572"  # PlexCleaner in Hexadecimal
+    LogToFile = False
+    if not Settings['LogFile'] == "":
+        LogToFile = True
+        filemode = "w"
+        if Settings.get("LogFileMode").startswith("a"):
+            filemode = "a"
+        logging.basicConfig(filename=Settings['LogFile'], filemode=filemode, level=logging.DEBUG)
+        logging.captureWarnings(True)
 
-if not Settings['Token']:
-    if Settings['Username']:
-        Settings['Token'] = fetchToken(Settings['Username'], Settings['Password'])
-        if not Settings['Token']:
-            log("Error getting token, trying without...", True)
-        elif test:
-            print("Token: " + Settings['Token'])  # print token, do not save in log file
-            login = True
+    log("** Script started " + time.strftime("%m-%d-%Y %I:%M:%S%p"))
+    log("")
 
-if args.clean_devices:
-    log("Cleaning up devices on plex.tv")
-    try:
-        x = getURLX("https://plex.tv/devices", parseXML=True, token=getToken())
-    except:
+    # If we don't have a client_id, generate a unique UID for machine and save in config
+    if not Settings['Client_ID']:
+        if Config:
+            Settings['Client_ID'] = str(uuid.uuid1().hex)
+            dumpSettings(Config)
+        else:
+            Settings['Client_ID'] = "506c6578436c65616e6572"  # PlexCleaner in Hexadecimal
+
+    if not Settings['Token']:
+        if Settings['Username']:
+            Settings['Token'] = fetchToken(Settings['Username'], Settings['Password'])
+            if not Settings['Token']:
+                log("Error getting token, trying without...", True)
+            elif test:
+                print("Token: " + Settings['Token'])  # print token, do not save in log file
+                login = True
+
+    # Process Token keys, ensure we have lowercase usernames and get access token for shared users.
+    if isinstance(Settings['Token'], dict):
+        for k in Settings['Token'].keys():
+            if k.endswith('$'):
+                Settings['Token'][k] = getAccessToken(Settings['Token'][k])
+                Settings['Token'][k[:-1].lower()] = Settings['Token'][k]    #add shared user without trailing '$'
+            if k.endswith('*'):
+                Settings['Token'][k[:-1].lower()] = Settings['Token'][k]    #add default user without trailing '*'
+            Settings['Token'][k.lower()] = Settings['Token'][k]
+
+    if args.clean_devices:
+        log("Cleaning up devices on plex.tv")
+        try:
+            x = getURLX("https://plex.tv/devices", parseXML=True, token=getToken())
+        except:
+            if debug_mode:
+                log(str(traceback.format_exc()))
+            log("Unable to load devices from http://plex.tv!")
+            exit()
         if debug_mode:
-            log(str(traceback.format_exc()))
-        log("Unable to load devices from http://plex.tv!")
+            print(x.toprettyxml())
+        deviceCount = 0
+        log("There are %d client devices." % len(x.getElementsByTagName("Device")))
+        for device in x.getElementsByTagName("Device"):
+            name = device.getAttribute("name")
+            if device.getAttribute("token") == getToken():  # Don't delete the current device token
+                continue
+            if device.getAttribute("name") == "PlexCleaner" or device.getAttribute("product") == "PlexCleaner":
+                deviceCount += 1
+                id = device.getAttribute("id")
+                try:
+                    getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=getToken(), method='DELETE',
+                            parseXML=False)
+                    log("Deleted device: " + device.getAttribute("clientIdentifier"))
+                    sleep(0.1)  # sleep for 100ms to rate limit requests to plex.tv
+                except:
+                    if debug_mode:
+                        log(str(traceback.format_exc()))
+                    log("Unable to delete device!")
+                if deviceCount > 100:
+                    log("Device limit reached! Please run again.")
+                    break
+        log("Exiting now, verify changes on PlexWeb. \n")
         exit()
-    if debug_mode:
-        print(x.toprettyxml())
-    deviceCount = 0
-    log("There are %d client devices." % len(x.getElementsByTagName("Device")))
-    for device in x.getElementsByTagName("Device"):
-        name = device.getAttribute("name")
-        if device.getAttribute("token") == getToken():  # Don't delete the current device token
-            continue
-        if device.getAttribute("name") == "PlexCleaner" or device.getAttribute("product") == "PlexCleaner":
-            deviceCount += 1
-            id = device.getAttribute("id")
-            try:
-                getURLX("https://plex.tv/devices" + "/" + id + ".xml", token=getToken(), method='DELETE',
-                        parseXML=False)
-                log("Deleted device: " + device.getAttribute("clientIdentifier"))
-                sleep(0.1)  # sleep for 100ms to rate limit requests to plex.tv
-            except:
-                if debug_mode:
-                    log(str(traceback.format_exc()))
-                log("Unable to delete device!")
-            if deviceCount > 100:
-                log("Device limit reached! Please run again.")
-                break
-    log("Exiting now, verify changes on PlexWeb. \n")
-    exit()
 
-if not Settings['Host'].startswith("http"):
-    Settings['Host'] = "http://" + Settings['Host']
+    if not Settings['Host'].startswith("http"):
+        Settings['Host'] = "http://" + Settings['Host']
 
-server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
-if server_check:
-    media_container = server_check.getElementsByTagName("MediaContainer")[0]
-    if not Settings['DeviceName']:
-        Settings['DeviceName'] = media_container.getAttribute("friendlyName")
-    if not machine_client_identifier:
-        machine_client_identifier = media_container.getAttribute("machineIdentifier")
-else:
-    log("[ERROR] Cannot reach server!", error=True)
-
-if Settings['Shared'] and getToken():
-    accessToken = getAccessToken(getToken())
-    if accessToken:
-        Settings['Token'] = accessToken
-        if test:
-            log("Access Token: " + Settings['Token'], True)
+    server_check = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/")
+    if server_check:
+        media_container = server_check.getElementsByTagName("MediaContainer")[0]
+        if not Settings['DeviceName']:
+            Settings['DeviceName'] = media_container.getAttribute("friendlyName")
+        if not machine_client_identifier:
+            machine_client_identifier = media_container.getAttribute("machineIdentifier")
     else:
-        log("[ERROR] Access Token not found or not a shared account", error=True)
+        log("[ERROR] Cannot reach server!", error=True)
 
-default_settings = {'episodes': Settings['default_episodes'],
-                    'minDays': Settings['default_minDays'],
-                    'maxDays': Settings['default_maxDays'],
-                    'action': Settings['default_action'],
-                    'watched': Settings['default_watched'],
-                    'progressAsWatched': Settings['default_progressAsWatched'],
-                    'location': Settings['default_location'],
-                    'onDeck': Settings['default_onDeck'],
-                    'homeUsers': Settings['default_homeUsers']
-                    }
+    if Settings['Shared'] and getToken():
+        accessToken = getAccessToken(getToken())
+        if accessToken:
+            Settings['Token'] = accessToken
+            if test:
+                log("Access Token: " + Settings['Token'], True)
+        else:
+            log("[ERROR] Access Token not found or not a shared account", error=True)
 
-log("----------------------------------------------------------------------------")
-log("                           Detected Settings")
-log("----------------------------------------------------------------------------")
-log("Host: " + Settings['Host'])
-log("Port: " + Settings['Port'])
+    default_settings = {'episodes': Settings['default_episodes'],
+                        'minDays': Settings['default_minDays'],
+                        'maxDays': Settings['default_maxDays'],
+                        'action': Settings['default_action'],
+                        'watched': Settings['default_watched'],
+                        'progressAsWatched': Settings['default_progressAsWatched'],
+                        'location': Settings['default_location'],
+                        'onDeck': Settings['default_onDeck'],
+                        'homeUsers': Settings['default_homeUsers']
+                        }
 
-FileCount = 0
-DeleteCount = 0
-DeleteSize = 0
-MoveCount = 0
-MoveSize = 0
-CopyCount = 0
-CopySize = 0
-OnDeckCount = 0
-FlaggedCount = 0
-FlaggedSize = 0
-KeptCount = 0
-KeptSize = 0
-ActionHistory = []
+    log("----------------------------------------------------------------------------")
+    log("                           Detected Settings")
+    log("----------------------------------------------------------------------------")
+    log("Host: " + Settings['Host'])
+    log("Port: " + Settings['Port'])
 
-doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
+    FileCount = 0
+    DeleteCount = 0
+    DeleteSize = 0
+    MoveCount = 0
+    MoveSize = 0
+    CopyCount = 0
+    CopySize = 0
+    OnDeckCount = 0
+    FlaggedCount = 0
+    FlaggedSize = 0
+    KeptCount = 0
+    KeptSize = 0
+    ActionHistory = []
 
-if (not Settings['SectionList']) and doc_sections:
-    for Section in doc_sections.getElementsByTagName("Directory"):
-        if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in \
-                Settings['IgnoreSections']:
-            Settings['SectionList'].append(Section.getAttribute("key"))
-elif doc_sections and Settings['SectionList']:  # Replace section names with the proper id(/key)
-    for i in range(0, len(Settings['SectionList'])):
-        if isinstance(Settings['SectionList'][i], int):  # Skip checking name of integers (these are keys)
-            continue
+    doc_sections = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/")
+
+    if (not Settings['SectionList']) and doc_sections:
         for Section in doc_sections.getElementsByTagName("Directory"):
-            if Section.getAttribute("title") == str(Settings['SectionList'][i]):
-                Settings['SectionList'][i] = int(Section.getAttribute("key"))
+            if Section.getAttribute("key") not in Settings['IgnoreSections'] and Section.getAttribute("title") not in \
+                    Settings['IgnoreSections']:
+                Settings['SectionList'].append(Section.getAttribute("key"))
+    elif doc_sections and Settings['SectionList']:  # Replace section names with the proper id(/key)
+        for i in range(0, len(Settings['SectionList'])):
+            if isinstance(Settings['SectionList'][i], int):  # Skip checking name of integers (these are keys)
+                continue
+            for Section in doc_sections.getElementsByTagName("Directory"):
+                if Section.getAttribute("title") == str(Settings['SectionList'][i]):
+                    Settings['SectionList'][i] = int(Section.getAttribute("key"))
 
-    Settings['SectionList'].sort()
-    # log("Section List Mode: Auto")
-    log("Operating on sections: " + ','.join(str(x) for x in Settings['SectionList']))
-    log("Skipping Sections: " + ','.join(str(x) for x in Settings['IgnoreSections']))
+        Settings['SectionList'].sort()
+        # log("Section List Mode: Auto")
+        log("Operating on sections: " + ','.join(str(x) for x in Settings['SectionList']))
+        log("Skipping Sections: " + ','.join(str(x) for x in Settings['IgnoreSections']))
 
-else:
-    log("Section List Mode: User-defined")
-    log("Operating on user-defined sections: " + ','.join(str(x) for x in Settings['SectionList']))
+    else:
+        log("Section List Mode: User-defined")
+        log("Operating on user-defined sections: " + ','.join(str(x) for x in Settings['SectionList']))
 
-RescannedSections = []
+    RescannedSections = []
 
-for Section in Settings['SectionList']:
-    Section = str(Section)
+    for Section in Settings['SectionList']:
+        Section = str(Section)
 
-    doc = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/all")
-    deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
+        doc = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/all")
+        deck = getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/onDeck")
 
-    if not doc:
-        log("[ERROR] Failed to load Section %s. Skipping..." % Section, error=True)
-        continue
-    SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
+        if not doc:
+            log("[ERROR] Failed to load Section %s. Skipping..." % Section, error=True)
+            continue
+        SectionName = doc.getElementsByTagName("MediaContainer")[0].getAttribute("title1")
+        log("")
+        log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
+
+        group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
+        changed = 0
+        if group == "movie":
+            changed = checkMovies(doc, Section)
+        elif group == "show":
+            for DirectoryNode in doc.getElementsByTagName("Directory"):
+                changed += checkShow(DirectoryNode)
+        if changed > 0 and Settings['trigger_rescan']:
+            log("Triggering rescan...")
+            if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
+                       parseXML=False):
+                RescannedSections.append(Section)
+
     log("")
-    log("--------- Section " + Section + ": " + SectionName + " -----------------------------------")
-
-    group = doc.getElementsByTagName("MediaContainer")[0].getAttribute("viewGroup")
-    changed = 0
-    if group == "movie":
-        changed = checkMovies(doc, Section)
-    elif group == "show":
-        for DirectoryNode in doc.getElementsByTagName("Directory"):
-            changed += checkShow(DirectoryNode)
-    if changed > 0 and Settings['trigger_rescan']:
-        log("Triggering rescan...")
-        if getURLX(Settings['Host'] + ":" + Settings['Port'] + "/library/sections/" + Section + "/refresh?deep=1",
-                   parseXML=False):
-            RescannedSections.append(Section)
-
-log("")
-log("----------------------------------------------------------------------------")
-log("----------------------------------------------------------------------------")
-log("                Summary -- Script Completed")
-log("----------------------------------------------------------------------------")
-log("")
-if test:
-    log("** Currently in testing mode. Please review the changes below. **")
-    log("   Remove test from the configuration if everything looks okay.")
+    log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
+    log("                Summary -- Script Completed")
+    log("----------------------------------------------------------------------------")
     log("")
-log("  Total File Count      " + str(FileCount) + (
-" (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
-log("  Kept Show Files       " + str(KeptCount) + (
-" (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
-log("  On Deck Files         " + str(OnDeckCount))
-log("  Deleted Files         " + str(DeleteCount) + (
-" (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
-log("  Moved Files           " + str(MoveCount) + (
-" (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
-log("  Copied Files          " + str(CopyCount) + (
-" (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
-log("  Flagged Files         " + str(FlaggedCount) + (
-" (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
-log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
-if len(ActionHistory) > 0:
+    if test:
+        log("** Currently in testing mode. Please review the changes below. **")
+        log("   Remove test from the configuration if everything looks okay.")
+        log("")
+    log("  Total File Count      " + str(FileCount) + (
+    " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
+    log("  Kept Show Files       " + str(KeptCount) + (
+    " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
+    log("  On Deck Files         " + str(OnDeckCount))
+    log("  Deleted Files         " + str(DeleteCount) + (
+    " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
+    log("  Moved Files           " + str(MoveCount) + (
+    " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
+    log("  Copied Files          " + str(CopyCount) + (
+    " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
+    log("  Flagged Files         " + str(FlaggedCount) + (
+    " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
+    log("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
+    if len(ActionHistory) > 0:
+        log("")
+        log("  Changed Files:")
+        for item in ActionHistory:
+            log("  " + item)
+    if len(ErrorLog) > 0:
+        log("")
+        log("  Errors:")
+        for item in ErrorLog:
+            log("  " + item)
     log("")
-    log("  Changed Files:")
-    for item in ActionHistory:
-        log("  " + item)
-if len(ErrorLog) > 0:
-    log("")
-    log("  Errors:")
-    for item in ErrorLog:
-        log("  " + item)
-log("")
-log("----------------------------------------------------------------------------")
-log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
+    log("----------------------------------------------------------------------------")
 
-# Email Log
-if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(
-        ErrorLog) > 0 or email_empty_log):  # Email log, but by default do not email log if no actions performed
-    try:
-        EmailContents = []  # Text of email.
-        EmailContents.append("<pre>")
-        EmailContents.append("----------------------------------------------------------------------------")
-        EmailContents.append("                Summary -- Script Completed")
-        EmailContents.append("----------------------------------------------------------------------------")
-        EmailContents.append("\n")
-        EmailContents.append("  Total File Count      " + str(FileCount) + (
-            " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
-        EmailContents.append("  Kept Show Files       " + str(KeptCount) + (
-            " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
-        EmailContents.append("  On Deck Files         " + str(OnDeckCount))
-        EmailContents.append("  Deleted Files         " + str(DeleteCount) + (
-            " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
-        EmailContents.append("  Moved Files           " + str(MoveCount) + (
-            " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
-        EmailContents.append("  Copied Files          " + str(CopyCount) + (
-            " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
-        EmailContents.append("  Flagged Files         " + str(FlaggedCount) + (
-            " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
-        EmailContents.append("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
-        if len(ActionHistory) > 0:
+    # Email Log
+    if Settings['EmailLog'] and (len(ActionHistory) > 0 or len(
+            ErrorLog) > 0 or email_empty_log):  # Email log, but by default do not email log if no actions performed
+        try:
+            EmailContents = []  # Text of email.
+            EmailContents.append("<pre>")
+            EmailContents.append("----------------------------------------------------------------------------")
+            EmailContents.append("                Summary -- Script Completed")
+            EmailContents.append("----------------------------------------------------------------------------")
             EmailContents.append("\n")
-            EmailContents.append("  Changed Files:")
-            for item in ActionHistory:
-                EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
-        if len(ErrorLog) > 0:
+            EmailContents.append("  Total File Count      " + str(FileCount) + (
+                " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
+            EmailContents.append("  Kept Show Files       " + str(KeptCount) + (
+                " (" + convert_size(KeptSize) + ")" if show_size and KeptSize > 0 else ""))
+            EmailContents.append("  On Deck Files         " + str(OnDeckCount))
+            EmailContents.append("  Deleted Files         " + str(DeleteCount) + (
+                " (" + convert_size(DeleteSize) + ")" if show_size and DeleteSize > 0 else ""))
+            EmailContents.append("  Moved Files           " + str(MoveCount) + (
+                " (" + convert_size(MoveSize) + ")" if show_size and MoveSize > 0 else ""))
+            EmailContents.append("  Copied Files          " + str(CopyCount) + (
+                " (" + convert_size(CopySize) + ")" if show_size and CopySize > 0 else ""))
+            EmailContents.append("  Flagged Files         " + str(FlaggedCount) + (
+                " (" + convert_size(FlaggedSize) + ")" if show_size and FlaggedSize > 0 else ""))
+            EmailContents.append("  Rescanned Sections    " + ', '.join(str(x) for x in RescannedSections))
+            if len(ActionHistory) > 0:
+                EmailContents.append("\n")
+                EmailContents.append("  Changed Files:")
+                for item in ActionHistory:
+                    EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
+            if len(ErrorLog) > 0:
+                EmailContents.append("\n")
+                EmailContents.append(" Errors:")
+                for item in ErrorLog:
+                    EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
             EmailContents.append("\n")
-            EmailContents.append(" Errors:")
-            for item in ErrorLog:
-                EmailContents.append("  " + item.encode('ascii', 'replace').decode('utf-8'))
-        EmailContents.append("\n")
-        EmailContents.append("----------------------------------------------------------------------------")
-        EmailContents.append("</pre>")
-        if sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
-                  Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"],
-                  Settings["EmailPassword"], Settings["EmailServerUseTLS"]):
-            log("")
-            log("Email of script summary sent successfully.")
-    except Exception as e:
-        log(e, True)
-        log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
-        if debug_mode:
-            log(str(traceback.format_exc()))
+            EmailContents.append("----------------------------------------------------------------------------")
+            EmailContents.append("</pre>")
+            if sendEmail(Settings["EmailUsername"], Settings["EmailRecipient"], "Plex-Cleaner Log", "\n".join(EmailContents),
+                      Settings["EmailServer"], Settings["EmailServerPort"], Settings["EmailUsername"],
+                      Settings["EmailPassword"], Settings["EmailServerUseTLS"]):
+                log("")
+                log("Email of script summary sent successfully.")
+        except Exception as e:
+            log(e, True)
+            log("Could not send email.  Please ensure a valid server, port, username, password, and recipient are specified in your Config file.")
+            if debug_mode:
+                log(str(traceback.format_exc()))
 
-log("")
+    log("")
