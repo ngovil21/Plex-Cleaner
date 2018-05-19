@@ -1285,6 +1285,7 @@ if __name__ == "__main__":
         log("** Currently in testing mode. Please review the changes below. **")
         log("   Remove test from the configuration if everything looks okay.")
         log("")
+    log("  Config file: " + Config)
     log("  Total File Count      " + str(FileCount) + (
     " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
     log("  Kept Show Files       " + str(KeptCount) + (
@@ -1323,6 +1324,7 @@ if __name__ == "__main__":
             EmailContents.append("                Summary -- Script Completed")
             EmailContents.append("----------------------------------------------------------------------------")
             EmailContents.append("\n")
+            EmailContents.append("  Config file: " + Config)
             EmailContents.append("  Total File Count      " + str(FileCount) + (
                 " (" + convert_size(KeptSize + FlaggedSize) + ")" if show_size and KeptSize + FlaggedSize > 0 else ""))
             EmailContents.append("  Kept Show Files       " + str(KeptCount) + (
