@@ -194,7 +194,7 @@ except:
     import urllib2
 
 CONFIG_VERSION = 2.0
-home_user_tokens = {}
+home_user_tokens = None
 machine_client_identifier = ''
 
 
@@ -330,7 +330,7 @@ def getPlexHomeUserTokens():
         home_user_tokens = user_tokens
     else:
         print("Cannot load page!")
-        return {}
+        home_user_tokens = {}
 
 
 # Load Settings from json into an OrderedDict, with defaults
@@ -660,7 +660,7 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         if isinstance(Settings['Token'], dict):
             users = Settings['Token'].keys()
         else:
-            if not home_user_tokens:
+            if home_user_tokens is None:
                 getPlexHomeUserTokens()
             users = home_user_tokens.keys()
     for u in users:
@@ -670,10 +670,11 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         else:
             if u.startswith("_"):
                 toke = u[1:]
-            elif not home_user_tokens:
-                getPlexHomeUserTokens()
-            elif u in home_user_tokens:
-                toke = home_user_tokens[u]
+            else:
+                if home_user_tokens is None:
+                    getPlexHomeUserTokens()
+                if u in home_user_tokens:
+                    toke = home_user_tokens[u]
         if toke:
             DaysSinceVideoLastViewed = checkUserWatched(toke, media_id, progress_as_watched)
         else:
