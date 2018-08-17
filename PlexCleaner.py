@@ -194,7 +194,7 @@ except:
     import urllib2
 
 CONFIG_VERSION = 2.0
-home_user_tokens = None
+home_user_tokens = {}
 machine_client_identifier = ''
 
 
@@ -310,6 +310,7 @@ def getToken(key=None):
             return None
     return Settings['Token']
 
+
 def getPlexHomeUserTokens():
     global home_user_tokens
     homeUsers = getURLX("https://plex.tv/api/home/users")
@@ -323,7 +324,7 @@ def getPlexHomeUserTokens():
                                   data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
-                username = user_element.getAttribute("title").lower().encode()
+                username = str(user_element.getAttribute("title")).lower()
                 home_token = user_element.getAttribute('authenticationToken')
                 if home_token:
                     user_tokens[username] = getAccessToken(home_token)
@@ -662,7 +663,7 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         if isinstance(Settings['Token'], dict):
             users = Settings['Token'].keys()
         else:
-            if home_user_tokens is None:
+            if not home_user_tokens:
                 getPlexHomeUserTokens()
             users = home_user_tokens.keys()
     for u in users:
@@ -672,11 +673,10 @@ def checkUsersWatched(users, media_id, progress_as_watched):
         else:
             if u.startswith("_"):
                 toke = u[1:]
-            else:
-                if home_user_tokens is None:
-                    getPlexHomeUserTokens()
-                if u in home_user_tokens:
-                    toke = home_user_tokens[u]
+            elif not home_user_tokens:
+                getPlexHomeUserTokens()
+            if u in home_user_tokens:
+                toke = home_user_tokens[u]
         if toke:
             DaysSinceVideoLastViewed = checkUserWatched(toke, media_id, progress_as_watched)
         else:
