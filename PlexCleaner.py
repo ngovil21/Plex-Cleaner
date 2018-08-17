@@ -187,8 +187,8 @@ except:
     import ConfigParser
 
 try:
-    from urllib.Error import HTTPError
     import urllib.request as urllib2
+    from urllib.error import HTTPError
 except:
     from urllib2 import HTTPError
     import urllib2
@@ -323,7 +323,7 @@ def getPlexHomeUserTokens():
                                   data=b'')  # Empty byte data to send a 'POST'
             if switch_page:
                 user_element = switch_page.getElementsByTagName('user')[0]
-                username = user_element.getAttribute("title").lower()
+                username = user_element.getAttribute("title").lower().encode()
                 home_token = user_element.getAttribute('authenticationToken')
                 if home_token:
                     user_tokens[username] = getAccessToken(home_token)
