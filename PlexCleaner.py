@@ -329,7 +329,7 @@ def getPlexHomeUserTokens():
                     user_tokens[username] = getAccessToken(home_token)
         home_user_tokens = user_tokens
         if debug_mode:
-            print("home user tokens: " + user_tokens)
+            print("home user tokens: " + str(user_tokens))
     else:
         print("Cannot load page!")
         home_user_tokens = {}
