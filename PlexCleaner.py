@@ -658,7 +658,7 @@ def getMediaInfo(VideoNode):
 
 def checkUsersWatched(users, media_id, progress_as_watched):
     compareDay = -1
-    any_user = users == 'any'
+    any_user = users == ['any'] or users == 'any'
     if users == 'all' or any_user:
         if isinstance(Settings['Token'], dict):
             users = Settings['Token'].keys()
